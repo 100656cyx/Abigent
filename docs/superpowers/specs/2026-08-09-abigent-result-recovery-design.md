@@ -36,6 +36,8 @@ Codex Hook 已能把 `Stop` 事件和正确的 `session_id` 实时送达 Abigent
 
 `AppModel` 把 Stop 交给独立的结果恢复协调器。协调器以 session ID 保存一个可取消任务，成功后产生 `.result` Hook 事件并交给 `TaskCoordinator`。数据库的 `task_id` 唯一约束和协调器的事件去重共同保证幂等。
 
+如果当前 Codex 进程尚未热加载新安装的 Hook，App Server 的完成状态同样启动结果恢复。该降级事件使用 App Server provenance，避免低优先级恢复结果被协调器拒绝；一旦 Hook 已生效，Hook provenance 仍保持最高优先级。
+
 Hook Socket 使用 `~/.abigent/run/bridge.sock`。该路径与 Flux Island 的用户目录 Socket 模式一致，可由 Codex Hook 子进程访问；数据库等应用数据仍保留在 Application Support。Socket 目录和文件分别保持 `0700` 与 `0600`。
 
 ### 错误处理

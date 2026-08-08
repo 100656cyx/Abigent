@@ -42,6 +42,7 @@ final class AppModel: ObservableObject {
     private let notifications = NotificationCoordinator()
     private let petController = PetWindowController()
     private var started = false
+    private var appServerRecoveryRequests: [String: Date] = [:]
 
     var attentionTasks: [AgentTask] { tasks.filter { $0.state == .needsInput } }
     var activeTasks: [AgentTask] { tasks.filter { [.working, .connectionUnknown].contains($0.state) } }
@@ -167,6 +168,7 @@ final class AppModel: ObservableObject {
                 await MainActor.run {
                     self?.tasks = values
                     self?.connectionMessage = "Codex 已连接"
+                    self?.recoverMissingAppServerResults(in: values, coordinator: coordinator)
                 }
             }
         }
@@ -212,6 +214,43 @@ final class AppModel: ObservableObject {
                         ),
                         provenance: .hook,
                         observedAt: envelope.observedAt
+                    )
+                    try? await coordinator.ingest(observed)
+                }
+            }
+        }
+    }
+
+    private func recoverMissingAppServerResults(
+        in values: [AgentTask],
+        coordinator: TaskCoordinator
+    ) {
+        guard let resultRecovery else { return }
+        for task in values where task.source == .codex {
+            let sessionID = task.sourceTaskID
+            guard [.completed, .failed, .cancelled].contains(task.state),
+                  task.result == nil
+            else {
+                if task.result != nil || task.state == .working {
+                    appServerRecoveryRequests[sessionID] = nil
+                }
+                continue
+            }
+            let completedAt = task.completedAt ?? task.updatedAt
+            guard appServerRecoveryRequests[sessionID] != completedAt else { continue }
+            appServerRecoveryRequests[sessionID] = completedAt
+            Task {
+                await resultRecovery.recover(
+                    sessionID: sessionID,
+                    stopObservedAt: completedAt
+                ) { result in
+                    let observed = ObservedAgentEvent(
+                        event: .result(
+                            id: .init(source: .codex, sourceTaskID: sessionID),
+                            result: result
+                        ),
+                        provenance: .appServer,
+                        observedAt: Date()
                     )
                     try? await coordinator.ingest(observed)
                 }
