@@ -38,7 +38,8 @@ let package = Package(
         .executableTarget(
             name: "AbigentApp",
             dependencies: ["AbigentCore", "AbigentCodex", "AbigentPersistence", "AbigentRuntime"],
-            path: "AppSources/AbigentApp"
+            path: "AppSources/AbigentApp",
+            resources: [.process("Resources")]
         ),
         .testTarget(name: "AbigentCoreTests", dependencies: ["AbigentCore"]),
         .testTarget(name: "AbigentCodexTests", dependencies: ["AbigentCodex"]),
