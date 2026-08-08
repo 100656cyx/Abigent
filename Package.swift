@@ -8,8 +8,7 @@ let package = Package(
         .library(name: "AbigentCore", targets: ["AbigentCore"])
     ],
     targets: [
-        .target(name: "AbigentCore"),
+        .target(name: "AbigentCore", path: "AppSources/AbigentCore"),
         .testTarget(name: "AbigentCoreTests", dependencies: ["AbigentCore"])
     ]
 )
-
