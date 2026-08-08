@@ -1,6 +1,6 @@
 # Abigent MVP 发布验收
 
-日期：2026-08-08
+日期：2026-08-09
 
 - Release 模式下全部生产 target 编译并链接成功。
 - `dist/Abigent.app` 已完成临时签名，`codesign --verify --deep --strict` 通过。
@@ -10,5 +10,8 @@
 - `hdiutil verify` 校验 DMG 成功。
 - 0.2.0 安装包包含独立签名的 `Contents/Helpers/abigent-hook`，外层严格签名校验通过。
 - 已安装 0.2.0 并确认主进程、小猫资源、Hook Socket 启动和工作状态显示正常。
+- 0.2.1 已完成生产构建、临时签名和 DMG 校验，并安装到 `/Applications/Abigent.app`（build 3）。
+- 0.2.1 将 Hook Socket 迁移到 `~/.abigent/run/bridge.sock`；实机权限为 `0600`，安装包 Relay 的本地链路验证为 Hook provenance 3。
+- 最终回复提取支持 Stop 早于 `task_complete` 落盘，并由每 session 独立的最长 30 秒恢复任务补齐延迟结果。
 - 当前机器只有 Command Line Tools，缺少 XCTest；测试源码已提交，但完整 XCTest 运行等待安装完整 Xcode。
 - 面向外部用户发布前，仍需使用 Developer ID Application 签名并完成 Apple 公证。

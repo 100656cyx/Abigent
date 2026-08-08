@@ -6,7 +6,7 @@
 
 - Abigent Hook 采用稳定所有权标记 `com.abigent.desktop`。
 - 安装器只合并或删除自有条目，损坏 JSON 时拒绝写入。
-- 本地 Socket 位于 `~/Library/Application Support/Abigent/run/bridge.sock`，权限为当前用户专用。
+- 0.2.1 起本地 Socket 位于 `~/.abigent/run/bridge.sock`，目录权限 `0700`、Socket 权限 `0600`，可由 Codex Hook 子进程访问。
 - Relay 缺少服务端时快速成功退出，不阻断 Codex。
 
 ## 实机安装记录
@@ -16,6 +16,7 @@
 - 七个 Abigent Hook 事件各存在一次：SessionStart、UserPromptSubmit、PreToolUse、PermissionRequest、PostToolUse、Stop、SubagentStop。
 - 安装回执和启用前备份均已生成。
 - 本地 Socket 已创建，文件权限为 `0600`。
+- 0.2.1 安装后使用安装包内 Relay 发送本地 `PreToolUse`，数据库来源由 App Server（2）提升为 Hook（3），验证 Relay → Socket → Normalizer → TaskCoordinator 链路成功。
 
 ## 下一条真实任务验收
 
