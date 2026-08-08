@@ -39,7 +39,7 @@ let package = Package(
         ),
         .target(
             name: "AbigentCodex",
-            dependencies: ["AbigentCore"],
+            dependencies: ["AbigentCore", "AbigentHooks"],
             path: "AppSources/AbigentCodex"
         ),
         .executableTarget(
