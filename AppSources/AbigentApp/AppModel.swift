@@ -37,6 +37,7 @@ final class AppModel: ObservableObject {
     private let hookServer: HookSocketServer?
     private let hookNormalizer: CodexHookNormalizer?
     private let resultExtractor: CodexResultExtractor?
+    private let resultRecovery: CodexResultRecoveryCoordinator?
     private let hookInstaller: CodexHookInstaller?
     private let notifications = NotificationCoordinator()
     private let petController = PetWindowController()
@@ -65,6 +66,11 @@ final class AppModel: ObservableObject {
         self.hookServer = hookServer
         self.hookNormalizer = hookNormalizer
         self.resultExtractor = resultExtractor
+        self.resultRecovery = resultExtractor.map { extractor in
+            CodexResultRecoveryCoordinator { sessionID, stopObservedAt in
+                try await extractor.extract(sessionID: sessionID, stopObservedAt: stopObservedAt)
+            }
+        }
         self.hookInstaller = hookInstaller
         petController.onOpenCodex = { [weak self] task in self?.openCodex(task) }
         petController.setVisible(true)
@@ -89,7 +95,8 @@ final class AppModel: ObservableObject {
             let sessionRoot = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(".codex/sessions", isDirectory: true)
             let hookServer = HookSocketServer(
-                socketURL: support.appendingPathComponent("run/bridge.sock")
+                socketURL: FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent(".abigent/run/bridge.sock")
             )
             let codexDirectory = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(".codex", isDirectory: true)
@@ -192,12 +199,12 @@ final class AppModel: ObservableObject {
                 for event in events { try? await coordinator.ingest(event) }
                 guard envelope.event == CodexHookEvent.stop.rawValue,
                       let sessionID = envelope.sessionID,
-                      let extractor = self?.resultExtractor
+                      let recovery = self?.resultRecovery
                 else { continue }
-                if let result = try? await extractor.extract(
+                await recovery.recover(
                     sessionID: sessionID,
                     stopObservedAt: envelope.observedAt
-                ) {
+                ) { result in
                     let observed = ObservedAgentEvent(
                         event: .result(
                             id: .init(source: .codex, sourceTaskID: sessionID),

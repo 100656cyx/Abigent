@@ -105,7 +105,7 @@ Quit Abigent, move the previous `/Applications/Abigent.app` to Trash with a time
 
 - [ ] **Step 3: Verify installed runtime**
 
-Check that the Hook socket is present with `0600`, seven Abigent Hook entries still exist once each, and the normalized non-Abigent Hook hash remains `83d23361af2d9ada434ce20563e7d7eef4db07646551a8b00f2dccddb16bca59`.
+Check that `~/.abigent/run/bridge.sock` is present with `0600`, seven Abigent Hook entries still exist once each, and the normalized non-Abigent Hook hash remains `83d23361af2d9ada434ce20563e7d7eef4db07646551a8b00f2dccddb16bca59`.
 
 - [ ] **Step 4: Run a real Codex turn**
 

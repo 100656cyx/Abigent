@@ -46,7 +46,7 @@ struct AbigentHookRelay {
     private static func socketPath() -> String {
         if let override = ProcessInfo.processInfo.environment["ABIGENT_SOCKET_PATH"] { return override }
         return FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Abigent/run/bridge.sock").path
+            .appendingPathComponent(".abigent/run/bridge.sock").path
     }
 
     private static func send(_ data: Data, to path: String) {

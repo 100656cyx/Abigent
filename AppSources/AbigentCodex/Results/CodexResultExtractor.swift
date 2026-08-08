@@ -19,12 +19,8 @@ public actor CodexResultExtractor {
     public func extract(sessionID: String, stopObservedAt: Date) async throws -> TaskResult {
         guard UUID(uuidString: sessionID) != nil else { throw CodexResultExtractorError.invalidSessionID }
         guard let file = sessionFile(for: sessionID) else { throw CodexResultExtractorError.sessionNotFound }
-        let delays: [UInt64] = [100, 250, 500, 1_000]
-        for (index, delay) in delays.enumerated() {
-            if let result = try parse(file: file, sessionID: sessionID, returnedAt: stopObservedAt) {
-                return result
-            }
-            if index < delays.count - 1 { try? await Task.sleep(for: .milliseconds(delay)) }
+        if let result = try parse(file: file, sessionID: sessionID, returnedAt: stopObservedAt) {
+            return result
         }
         throw CodexResultExtractorError.resultNotYetAvailable
     }
@@ -55,11 +51,14 @@ public actor CodexResultExtractor {
                 paths.append((index, path))
             }
         }
-        guard let complete = lastComplete,
-              let detail = messages.last(where: { $0.0 >= lastStart && $0.0 <= complete })?.1,
-              !detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { return nil }
-        let explicitPaths = orderedUnique(paths.filter { $0.0 >= lastStart && $0.0 <= complete }.map(\.1))
+        let turnEnd = lastComplete ?? Int.max
+        guard let detail = messages.last(where: {
+            $0.0 >= lastStart && $0.0 <= turnEnd
+                && !$0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        })?.1 else { return nil }
+        let explicitPaths = orderedUnique(paths.filter {
+            $0.0 >= lastStart && $0.0 <= turnEnd
+        }.map(\.1))
         let summary = detail.split(separator: "\n", omittingEmptySubsequences: true).first.map {
             String($0.prefix(160))
         }
