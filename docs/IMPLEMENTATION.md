@@ -8,7 +8,7 @@ Abigent 同时提供桌面宠物和菜单栏入口。宠物用于低打扰状态
 
 `CodexProcessTransport` 通过本机 `codex app-server --stdio` 建立 JSON-RPC v2 通道，逐行解码消息，按请求 ID 路由响应，并在进程退出时结束所有等待请求。`CodexConnector` 使用 `thread/list` 自动发现任务，使用 turn 生命周期映射状态，并处理命令授权和 `requestUserInput` 的原始服务器请求 ID。
 
-真实验证发现：独立 App Server 能读取 20 个本机任务，但 Codex 桌面自己的 App Server 通过 stdio 私有连接到桌面进程，没有公开共享 Socket。因此历史发现和结构化数据走 App Server；桌面运行态、定位和桌面拥有的输入请求使用默认关闭的 `CodexAccessibilityFallback`。它只搜索 macOS 辅助功能角色与标签，不读取像素或依赖坐标。
+真实验证发现：独立 App Server 能读取本机任务，但 Codex 桌面自己的 App Server 通过 stdio 私有连接到桌面进程，没有公开共享 Socket。因此历史发现和结构化数据走 App Server；实时开始与完成状态由 `CodexSessionWatcher` 监听本机 `.codex/sessions` 追加日志中的事件类型、时间和任务 ID，不读取或上传对话正文。定位和桌面拥有的输入请求可使用默认关闭的 `CodexAccessibilityFallback`，它只搜索 macOS 辅助功能角色与标签，不读取像素或依赖坐标。
 
 ## 统一任务核心
 
@@ -38,4 +38,4 @@ SwiftUI `MenuBarExtra` 将任务按需要操作、运行中和最近完成排序
 
 ## 测试与已知限制
 
-核心、传输、映射、辅助权限、SQLite 和协调器均包含 XCTest 测试源码。当前 Command Line Tools 不包含 XCTest，完整自动化测试需要安装完整 Xcode；所有生产 target 已使用兼容 SDK 完成编译和链接检查。独立 App Server 无法直接订阅桌面进程的实时事件，因此第一版对这部分依赖用户明确授权的辅助功能桥。精确 Codex thread 深链尚无官方格式，当前“打开 Codex”会激活应用并由辅助功能定位任务。
+核心、传输、映射、辅助权限、SQLite 和协调器均包含 XCTest 测试源码。当前 Command Line Tools 不包含 XCTest，完整自动化测试需要安装完整 Xcode；所有生产 target 已使用兼容 SDK 完成编译和链接检查。独立 App Server 无法直接订阅桌面进程的实时事件，因此实时状态使用本地会话日志；等待输入的结构化问题和原地回复在桌面私有连接未开放时仍需要用户明确授权的辅助功能桥。精确 Codex thread 深链尚无官方格式，当前“打开 Codex”会激活应用并由辅助功能定位任务。

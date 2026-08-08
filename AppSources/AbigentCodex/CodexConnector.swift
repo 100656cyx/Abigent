@@ -27,9 +27,14 @@ public actor CodexConnector: AgentConnector {
     private var pendingRequests: [String: PendingRequest] = [:]
     private var activeTurns: [String: String] = [:]
     private var connected = false
+    private let sessionWatcher: CodexSessionWatcher?
 
-    public init(transport: any CodexTransporting = CodexProcessTransport()) {
+    public init(
+        transport: any CodexTransporting = CodexProcessTransport(),
+        sessionRootURL: URL? = nil
+    ) {
         self.transport = transport
+        self.sessionWatcher = sessionRootURL.map(CodexSessionWatcher.init(rootURL:))
         let pair = AsyncStream<AgentEvent>.makeStream()
         self.stream = pair.stream
         self.continuation = pair.continuation
@@ -61,6 +66,7 @@ public actor CodexConnector: AgentConnector {
     }
 
     public func disconnect() async {
+        sessionWatcher?.stop()
         consumer?.cancel()
         consumer = nil
         await transport.stop()
@@ -80,6 +86,7 @@ public actor CodexConnector: AgentConnector {
             tasks.append(contentsOf: response.data.map(CodexMapper.task(from:)))
             cursor = response.nextCursor
         } while cursor != nil
+        sessionWatcher?.start { [continuation] event in continuation.yield(event) }
         return tasks
     }
 

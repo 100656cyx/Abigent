@@ -57,8 +57,10 @@ final class AppModel: ObservableObject {
                 executableURL: URL(fileURLWithPath: "/Applications/ChatGPT.app/Contents/Resources/codex"),
                 arguments: ["app-server", "--stdio"]
             )
+            let sessionRoot = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".codex/sessions", isDirectory: true)
             return AppModel(coordinator: TaskCoordinator(
-                connector: CodexConnector(transport: transport),
+                connector: CodexConnector(transport: transport, sessionRootURL: sessionRoot),
                 repository: repository
             ))
         } catch {
