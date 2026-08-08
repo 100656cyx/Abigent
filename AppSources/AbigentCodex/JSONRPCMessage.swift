@@ -46,3 +46,9 @@ struct JSONRPCNotification: Encodable {
     let method: String
     let params: JSONValue
 }
+
+struct JSONRPCResponse: Encodable {
+    let jsonrpc = "2.0"
+    let id: JSONRPCID
+    let result: JSONValue
+}

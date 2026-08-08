@@ -16,7 +16,16 @@ public enum CodexTransportEvent: Sendable, Equatable {
     case exited(Int32)
 }
 
-public actor CodexProcessTransport {
+public protocol CodexTransporting: Sendable {
+    func start() async throws
+    func messages() async -> AsyncStream<CodexTransportEvent>
+    func send(method: String, params: JSONValue) async throws -> JSONValue
+    func notify(method: String, params: JSONValue) async throws
+    func respond(id: JSONRPCID, result: JSONValue) async throws
+    func stop() async
+}
+
+public actor CodexProcessTransport: CodexTransporting {
     private let executableURL: URL
     private let arguments: [String]
     private let processFactory: @Sendable () -> Process
@@ -43,7 +52,7 @@ public actor CodexProcessTransport {
 
     public func messages() -> AsyncStream<CodexTransportEvent> { stream }
 
-    public func start() throws {
+    public func start() async throws {
         guard process == nil else { throw CodexTransportError.alreadyRunning }
         let child = processFactory()
         let standardInput = Pipe()
@@ -93,12 +102,17 @@ public actor CodexProcessTransport {
         }
     }
 
-    public func notify(method: String, params: JSONValue = .object([:])) throws {
+    public func notify(method: String, params: JSONValue = .object([:])) async throws {
         guard let input else { throw CodexTransportError.notRunning }
         try input.write(contentsOf: Self.lineData(JSONRPCNotification(method: method, params: params)))
     }
 
-    public func stop() {
+    public func respond(id: JSONRPCID, result: JSONValue) async throws {
+        guard let input else { throw CodexTransportError.notRunning }
+        try input.write(contentsOf: Self.lineData(JSONRPCResponse(id: id, result: result)))
+    }
+
+    public func stop() async {
         readTask?.cancel()
         readTask = nil
         input?.closeFile()
