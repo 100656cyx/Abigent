@@ -34,3 +34,5 @@ That App Server is attached to the desktop process over inherited stdio. The vis
 `GO_WITH_LIMITED_ACCESSIBILITY_FALLBACK`
 
 Use App Server/state storage for automatic discovery, structured history, independently hosted Codex tasks, and protocol-compatible result parsing. Use a narrowly scoped, explicitly authorized macOS Accessibility bridge for live desktop state, exact task navigation, and desktop-owned prompt interaction. Do not use screen-coordinate or pixel recognition. Keep unknown desktop states as `connectionUnknown` rather than inventing progress.
+
+The bounded fallback is implemented behind an explicit `enabled` preference and trust check. It locates Codex by bundle identifier, searches the accessibility tree by roles and labels, and exposes only visible-state, focus-task, choice, and text-response operations. Live granted-permission verification remains part of the native app onboarding test because the diagnostic executable must not trigger a system permission prompt on its own.
