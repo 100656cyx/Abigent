@@ -47,7 +47,9 @@ struct PetView: View {
             .map { $0.appendingPathComponent("Abigent_AbigentApp.bundle") }
             .flatMap(Bundle.init(url:))
         let resources = installedBundle ?? Bundle.module
-        guard let url = resources.url(forResource: "abigent-base", withExtension: "png", subdirectory: "Pet"),
+        let url = resources.url(forResource: "abigent-base", withExtension: "png", subdirectory: "Pet")
+            ?? resources.url(forResource: "abigent-base", withExtension: "png")
+        guard let url,
               let image = NSImage(contentsOf: url) else { return NSImage() }
         return image
     }
