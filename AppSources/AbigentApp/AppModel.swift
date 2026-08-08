@@ -13,7 +13,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var tasks: [AgentTask] = [] {
         didSet {
             petController.state = PetAnimationState.aggregate(tasks)
-            petController.task = PetHoverState.featuredTask(tasks)
+            petController.task = showHoverResults ? PetHoverState.featuredTask(tasks) : nil
         }
     }
     @Published private(set) var connectionMessage = "正在连接 Codex…"
@@ -24,11 +24,20 @@ final class AppModel: ObservableObject {
     @Published var petAlwaysOnTop = true { didSet { petController.setAlwaysOnTop(petAlwaysOnTop) } }
     @Published var notificationsEnabled = true
     @Published var accessibilityFallbackEnabled = false
+    @Published var showHoverResults = UserDefaults.standard.object(forKey: "showHoverResults") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(showHoverResults, forKey: "showHoverResults")
+            petController.task = showHoverResults ? PetHoverState.featuredTask(tasks) : nil
+        }
+    }
+    @Published private(set) var hookInstallationStatus: HookInstallationStatus = .notInstalled
+    @Published private(set) var hookSetupError: String?
 
     private let coordinator: TaskCoordinator?
     private let hookServer: HookSocketServer?
     private let hookNormalizer: CodexHookNormalizer?
     private let resultExtractor: CodexResultExtractor?
+    private let hookInstaller: CodexHookInstaller?
     private let notifications = NotificationCoordinator()
     private let petController = PetWindowController()
     private var started = false
@@ -49,14 +58,17 @@ final class AppModel: ObservableObject {
         coordinator: TaskCoordinator?,
         hookServer: HookSocketServer? = nil,
         hookNormalizer: CodexHookNormalizer? = nil,
-        resultExtractor: CodexResultExtractor? = nil
+        resultExtractor: CodexResultExtractor? = nil,
+        hookInstaller: CodexHookInstaller? = nil
     ) {
         self.coordinator = coordinator
         self.hookServer = hookServer
         self.hookNormalizer = hookNormalizer
         self.resultExtractor = resultExtractor
+        self.hookInstaller = hookInstaller
         petController.onOpenCodex = { [weak self] task in self?.openCodex(task) }
         petController.setVisible(true)
+        hookInstallationStatus = hookInstaller?.inspect() ?? .notInstalled
         Task { await start() }
     }
 
@@ -79,6 +91,13 @@ final class AppModel: ObservableObject {
             let hookServer = HookSocketServer(
                 socketURL: support.appendingPathComponent("run/bridge.sock")
             )
+            let codexDirectory = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".codex", isDirectory: true)
+            let hookInstaller = CodexHookInstaller(
+                configurationURL: codexDirectory.appendingPathComponent("hooks.json"),
+                backupURL: codexDirectory.appendingPathComponent("hooks.abigent.backup.json"),
+                receiptURL: support.appendingPathComponent("hook-installation.json")
+            )
             return AppModel(
                 coordinator: TaskCoordinator(
                     connector: CodexConnector(transport: transport, sessionRootURL: sessionRoot),
@@ -86,10 +105,44 @@ final class AppModel: ObservableObject {
                 ),
                 hookServer: hookServer,
                 hookNormalizer: CodexHookNormalizer(),
-                resultExtractor: CodexResultExtractor(sessionsRoot: sessionRoot)
+                resultExtractor: CodexResultExtractor(sessionsRoot: sessionRoot),
+                hookInstaller: hookInstaller
             )
         } catch {
             return AppModel(coordinator: nil)
+        }
+    }
+
+    var hooksInstalled: Bool {
+        if case .installed = hookInstallationStatus { return true }
+        return false
+    }
+
+    func enableHooks() {
+        guard let hookInstaller else { return }
+        let relay = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/abigent-hook")
+        guard FileManager.default.isExecutableFile(atPath: relay.path) else {
+            hookSetupError = "安装包中缺少 Hook Relay，请重新安装最新版 Abigent。"
+            return
+        }
+        do {
+            try hookInstaller.install(relayURL: relay)
+            hookInstallationStatus = hookInstaller.inspect()
+            hookSetupError = nil
+        } catch {
+            hookSetupError = "无法安全更新 Codex Hook：\(String(describing: error))"
+            hookInstallationStatus = hookInstaller.inspect()
+        }
+    }
+
+    func disableHooks() {
+        guard let hookInstaller else { return }
+        do {
+            try hookInstaller.uninstall()
+            hookInstallationStatus = hookInstaller.inspect()
+            hookSetupError = nil
+        } catch {
+            hookSetupError = "无法停用 Abigent Hook：\(String(describing: error))"
         }
     }
 

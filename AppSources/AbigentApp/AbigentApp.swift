@@ -15,7 +15,7 @@ struct AbigentApplication: App {
         Settings {
             SettingsView()
                 .environmentObject(model)
-                .frame(width: 480, height: 360)
+                .frame(width: 520, height: 560)
         }
     }
 }
