@@ -19,6 +19,17 @@ public enum TaskState: String, Codable, Sendable, Equatable, Hashable {
     case discovered, working, needsInput, completed, failed, cancelled, connectionUnknown
 }
 
+public enum EventProvenance: Int, Codable, Sendable, Equatable, Comparable {
+    case accessibilityFallback = 0
+    case sessionRecovery = 1
+    case appServer = 2
+    case hook = 3
+
+    public static func < (lhs: EventProvenance, rhs: EventProvenance) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
 public struct AttentionChoice: Codable, Sendable, Equatable, Hashable {
     public let id: String
     public let label: String
@@ -60,12 +71,20 @@ public struct TaskResult: Codable, Sendable, Equatable {
     public let changedFiles: [String]?
     public let tests: TestSummary?
     public let detail: String?
+    public let returnedAt: Date?
 
-    public init(summary: String?, changedFiles: [String]?, tests: TestSummary?, detail: String?) {
+    public init(
+        summary: String?,
+        changedFiles: [String]?,
+        tests: TestSummary?,
+        detail: String?,
+        returnedAt: Date? = nil
+    ) {
         self.summary = summary
         self.changedFiles = changedFiles
         self.tests = tests
         self.detail = detail
+        self.returnedAt = returnedAt
     }
 }
 
@@ -82,6 +101,8 @@ public struct AgentTask: Codable, Sendable, Equatable, Identifiable {
     public var updatedAt: Date
     public var completedAt: Date?
     public var muted: Bool
+    public var provenance: EventProvenance?
+    public var observedAt: Date?
 
     public init(
         id: GlobalTaskID,
@@ -95,7 +116,9 @@ public struct AgentTask: Codable, Sendable, Equatable, Identifiable {
         startedAt: Date?,
         updatedAt: Date,
         completedAt: Date?,
-        muted: Bool
+        muted: Bool,
+        provenance: EventProvenance? = nil,
+        observedAt: Date? = nil
     ) {
         self.id = id
         self.source = source
@@ -109,6 +132,8 @@ public struct AgentTask: Codable, Sendable, Equatable, Identifiable {
         self.updatedAt = updatedAt
         self.completedAt = completedAt
         self.muted = muted
+        self.provenance = provenance
+        self.observedAt = observedAt
     }
 }
 
@@ -124,6 +149,18 @@ public enum AgentEvent: Codable, Sendable, Equatable {
     case attention(id: GlobalTaskID, request: AttentionRequest)
     case result(id: GlobalTaskID, result: TaskResult)
     case connectionChanged(ConnectionState)
+}
+
+public struct ObservedAgentEvent: Codable, Sendable, Equatable {
+    public let event: AgentEvent
+    public let provenance: EventProvenance
+    public let observedAt: Date
+
+    public init(event: AgentEvent, provenance: EventProvenance, observedAt: Date) {
+        self.event = event
+        self.provenance = provenance
+        self.observedAt = observedAt
+    }
 }
 
 public enum UserResponse: Codable, Sendable, Equatable {

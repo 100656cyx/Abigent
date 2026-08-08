@@ -6,6 +6,24 @@ public enum TaskReducerError: Error, Equatable {
 }
 
 public enum TaskReducer {
+    public static func reduce(current: AgentTask, observed: ObservedAgentEvent) throws -> AgentTask {
+        if let currentProvenance = current.provenance,
+           currentProvenance > observed.provenance {
+            return current
+        }
+        if current.provenance == observed.provenance,
+           let currentObservedAt = current.observedAt,
+           observed.observedAt < currentObservedAt {
+            return current
+        }
+
+        var next = try reduce(current: current, event: observed.event)
+        guard next != current || current.provenance == nil else { return current }
+        next.provenance = observed.provenance
+        next.observedAt = observed.observedAt
+        return next
+    }
+
     public static func reduce(current: AgentTask, event: AgentEvent) throws -> AgentTask {
         switch event {
         case .connectionChanged:
