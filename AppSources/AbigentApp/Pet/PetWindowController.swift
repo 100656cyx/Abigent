@@ -1,9 +1,12 @@
+import AbigentCore
 import AppKit
 import SwiftUI
 
 @MainActor
 final class PetWindowController {
     var state: PetAnimationState = .idle { didSet { render() } }
+    var task: AgentTask? { didSet { render() } }
+    var onOpenCodex: ((AgentTask) -> Void)?
     private let panel: NSPanel
 
     init() {
@@ -34,7 +37,25 @@ final class PetWindowController {
     }
 
     private func render() {
-        panel.contentView = NSHostingView(rootView: PetView(state: state))
+        panel.contentView = NSHostingView(rootView: PetView(
+            state: state,
+            task: task,
+            onCardVisibilityChanged: { [weak self] visible in self?.setCardVisible(visible) },
+            onOpenCodex: { [weak self] task in self?.onOpenCodex?(task) }
+        ))
+    }
+
+    private func setCardVisible(_ visible: Bool) {
+        let targetWidth: CGFloat = visible ? 570 : 190
+        guard panel.frame.width != targetWidth else { return }
+        var frame = panel.frame
+        let rightEdge = frame.maxX
+        frame.size.width = targetWidth
+        frame.origin.x = rightEdge - targetWidth
+        if let screen = panel.screen ?? NSScreen.main, frame.minX < screen.visibleFrame.minX {
+            frame.origin.x = screen.visibleFrame.minX
+        }
+        panel.setFrame(frame, display: true, animate: true)
     }
 
     private func positionOnVisibleScreen() {

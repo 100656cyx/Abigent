@@ -1,15 +1,33 @@
+import AbigentCore
 import AppKit
 import SwiftUI
 
 struct PetView: View {
     let state: PetAnimationState
+    let task: AgentTask?
+    let onCardVisibilityChanged: (Bool) -> Void
+    let onOpenCodex: (AgentTask) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var cardVisible = false
+    @State private var expanded = false
+    @State private var hoverTask: Task<Void, Never>?
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { timeline in
             let phase = timeline.date.timeIntervalSinceReferenceDate
-            ZStack(alignment: .topTrailing) {
-                Image(nsImage: petImage)
+            HStack(alignment: .bottom, spacing: 14) {
+                if cardVisible, let task {
+                    PetResultCard(
+                        task: task,
+                        expanded: expanded,
+                        onToggleExpanded: { expanded.toggle() },
+                        onOpenCodex: { onOpenCodex(task) }
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .trailing)))
+                    .onHover(perform: scheduleVisibility)
+                }
+                ZStack(alignment: .topTrailing) {
+                    Image(nsImage: petImage)
                     .resizable()
                     .scaledToFit()
                     .scaleEffect(scale(phase))
@@ -17,10 +35,37 @@ struct PetView: View {
                     .offset(y: verticalOffset(phase))
                     .animation(.easeInOut(duration: 0.35), value: state)
                     .accessibilityLabel("Abigent，\(stateLabel)")
-                badge
-                    .padding(18)
+                    badge.padding(18)
+                }
+                .frame(width: 190, height: 250)
+                .contentShape(Rectangle())
+                .onHover(perform: scheduleVisibility)
             }
             .padding(5)
+            .animation(.easeInOut(duration: 0.18), value: cardVisible)
+        }
+    }
+
+    private func scheduleVisibility(_ hovering: Bool) {
+        hoverTask?.cancel()
+        if hovering {
+            hoverTask = Task {
+                try? await Task.sleep(for: .milliseconds(180))
+                guard !Task.isCancelled, task != nil else { return }
+                await MainActor.run {
+                    cardVisible = true
+                    onCardVisibilityChanged(true)
+                }
+            }
+        } else if !expanded {
+            hoverTask = Task {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    cardVisible = false
+                    onCardVisibilityChanged(false)
+                }
+            }
         }
     }
 

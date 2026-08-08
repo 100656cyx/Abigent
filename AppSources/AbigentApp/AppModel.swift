@@ -11,7 +11,10 @@ final class AppModel: ObservableObject {
     enum ActionState: Equatable { case idle, sending, failed(String) }
 
     @Published private(set) var tasks: [AgentTask] = [] {
-        didSet { petController.state = PetAnimationState.aggregate(tasks) }
+        didSet {
+            petController.state = PetAnimationState.aggregate(tasks)
+            petController.task = PetHoverState.featuredTask(tasks)
+        }
     }
     @Published private(set) var connectionMessage = "正在连接 Codex…"
     @Published private(set) var hookConnectionMessage = "Hook 尚未启动"
@@ -52,6 +55,7 @@ final class AppModel: ObservableObject {
         self.hookServer = hookServer
         self.hookNormalizer = hookNormalizer
         self.resultExtractor = resultExtractor
+        petController.onOpenCodex = { [weak self] task in self?.openCodex(task) }
         petController.setVisible(true)
         Task { await start() }
     }
