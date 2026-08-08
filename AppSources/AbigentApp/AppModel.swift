@@ -9,17 +9,20 @@ import Foundation
 final class AppModel: ObservableObject {
     enum ActionState: Equatable { case idle, sending, failed(String) }
 
-    @Published private(set) var tasks: [AgentTask] = []
+    @Published private(set) var tasks: [AgentTask] = [] {
+        didSet { petController.state = PetAnimationState.aggregate(tasks) }
+    }
     @Published private(set) var connectionMessage = "正在连接 Codex…"
     @Published var drafts: [GlobalTaskID: String] = [:]
     @Published var actions: [GlobalTaskID: ActionState] = [:]
-    @Published var showPet = true
-    @Published var petAlwaysOnTop = true
+    @Published var showPet = true { didSet { petController.setVisible(showPet) } }
+    @Published var petAlwaysOnTop = true { didSet { petController.setAlwaysOnTop(petAlwaysOnTop) } }
     @Published var notificationsEnabled = true
     @Published var accessibilityFallbackEnabled = false
 
     private let coordinator: TaskCoordinator?
     private let notifications = NotificationCoordinator()
+    private let petController = PetWindowController()
     private var started = false
 
     var attentionTasks: [AgentTask] { tasks.filter { $0.state == .needsInput } }
@@ -36,6 +39,7 @@ final class AppModel: ObservableObject {
 
     init(coordinator: TaskCoordinator?) {
         self.coordinator = coordinator
+        petController.setVisible(true)
         Task { await start() }
     }
 
