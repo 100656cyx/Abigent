@@ -49,7 +49,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "AbigentApp",
-            dependencies: ["AbigentCore", "AbigentCodex", "AbigentPersistence", "AbigentRuntime"],
+            dependencies: ["AbigentCore", "AbigentCodex", "AbigentHooks", "AbigentPersistence", "AbigentRuntime"],
             path: "AppSources/AbigentApp",
             resources: [.process("Resources")]
         ),

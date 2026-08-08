@@ -52,7 +52,13 @@ public actor TaskCoordinator {
         let events = await connector.events()
         eventConsumer = Task { [weak self] in
             for await event in events {
-                do { try await self?.consume(event) }
+                do {
+                    try await self?.ingest(.init(
+                        event: event,
+                        provenance: .appServer,
+                        observedAt: Date()
+                    ))
+                }
                 catch { await self?.markConnectionUnknown() }
             }
         }
@@ -80,12 +86,20 @@ public actor TaskCoordinator {
         await connector.sourceURL(taskID: sourceID(taskID))
     }
 
-    private func consume(_ event: AgentEvent) async throws {
-        switch event {
-        case let .snapshot(task): try await store(task, previousState: tasks[task.id]?.state)
+    public func ingest(_ observed: ObservedAgentEvent) async throws {
+        switch observed.event {
+        case let .snapshot(task):
+            var next = task
+            next.provenance = observed.provenance
+            next.observedAt = observed.observedAt
+            if let current = tasks[task.id],
+               let provenance = current.provenance,
+               provenance > observed.provenance { return }
+            try await store(next, previousState: tasks[task.id]?.state)
         case let .stateChanged(id, _, _), let .attention(id, _), let .result(id, _):
             guard let current = tasks[id] else { return }
-            let next = try TaskReducer.reduce(current: current, event: event)
+            let next = try TaskReducer.reduce(current: current, observed: observed)
+            guard next != current else { return }
             try await store(next, previousState: current.state)
         case let .connectionChanged(state):
             if case .failed = state { await markConnectionUnknown() }

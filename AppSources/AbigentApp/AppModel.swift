@@ -1,5 +1,6 @@
 import AbigentCodex
 import AbigentCore
+import AbigentHooks
 import AbigentPersistence
 import AbigentRuntime
 import AppKit
@@ -13,6 +14,7 @@ final class AppModel: ObservableObject {
         didSet { petController.state = PetAnimationState.aggregate(tasks) }
     }
     @Published private(set) var connectionMessage = "正在连接 Codex…"
+    @Published private(set) var hookConnectionMessage = "Hook 尚未启动"
     @Published var drafts: [GlobalTaskID: String] = [:]
     @Published var actions: [GlobalTaskID: ActionState] = [:]
     @Published var showPet = true { didSet { petController.setVisible(showPet) } }
@@ -21,6 +23,9 @@ final class AppModel: ObservableObject {
     @Published var accessibilityFallbackEnabled = false
 
     private let coordinator: TaskCoordinator?
+    private let hookServer: HookSocketServer?
+    private let hookNormalizer: CodexHookNormalizer?
+    private let resultExtractor: CodexResultExtractor?
     private let notifications = NotificationCoordinator()
     private let petController = PetWindowController()
     private var started = false
@@ -37,8 +42,16 @@ final class AppModel: ObservableObject {
         return "cat.fill"
     }
 
-    init(coordinator: TaskCoordinator?) {
+    init(
+        coordinator: TaskCoordinator?,
+        hookServer: HookSocketServer? = nil,
+        hookNormalizer: CodexHookNormalizer? = nil,
+        resultExtractor: CodexResultExtractor? = nil
+    ) {
         self.coordinator = coordinator
+        self.hookServer = hookServer
+        self.hookNormalizer = hookNormalizer
+        self.resultExtractor = resultExtractor
         petController.setVisible(true)
         Task { await start() }
     }
@@ -59,10 +72,18 @@ final class AppModel: ObservableObject {
             )
             let sessionRoot = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(".codex/sessions", isDirectory: true)
-            return AppModel(coordinator: TaskCoordinator(
-                connector: CodexConnector(transport: transport, sessionRootURL: sessionRoot),
-                repository: repository
-            ))
+            let hookServer = HookSocketServer(
+                socketURL: support.appendingPathComponent("run/bridge.sock")
+            )
+            return AppModel(
+                coordinator: TaskCoordinator(
+                    connector: CodexConnector(transport: transport, sessionRootURL: sessionRoot),
+                    repository: repository
+                ),
+                hookServer: hookServer,
+                hookNormalizer: CodexHookNormalizer(),
+                resultExtractor: CodexResultExtractor(sessionsRoot: sessionRoot)
+            )
         } catch {
             return AppModel(coordinator: nil)
         }
@@ -74,6 +95,7 @@ final class AppModel: ObservableObject {
             return
         }
         started = true
+        startHookBridge(coordinator: coordinator)
         let updates = await coordinator.taskUpdates()
         let intents = await coordinator.notifications()
         Task { [weak self] in
@@ -92,6 +114,45 @@ final class AppModel: ObservableObject {
         }
         do { try await coordinator.start() }
         catch { connectionMessage = "Codex 连接失败：\(String(describing: error))" }
+    }
+
+    private func startHookBridge(coordinator: TaskCoordinator) {
+        guard let hookServer, let hookNormalizer else {
+            hookConnectionMessage = "Hook 组件不可用"
+            return
+        }
+        do {
+            try hookServer.start()
+            hookConnectionMessage = "Hook 正在监听"
+        } catch {
+            hookConnectionMessage = "Hook 启动失败，已使用日志恢复"
+            return
+        }
+        let envelopes = hookServer.events()
+        Task { [weak self] in
+            for await envelope in envelopes {
+                let events = await hookNormalizer.normalize(envelope)
+                for event in events { try? await coordinator.ingest(event) }
+                guard envelope.event == CodexHookEvent.stop.rawValue,
+                      let sessionID = envelope.sessionID,
+                      let extractor = self?.resultExtractor
+                else { continue }
+                if let result = try? await extractor.extract(
+                    sessionID: sessionID,
+                    stopObservedAt: envelope.observedAt
+                ) {
+                    let observed = ObservedAgentEvent(
+                        event: .result(
+                            id: .init(source: .codex, sourceTaskID: sessionID),
+                            result: result
+                        ),
+                        provenance: .hook,
+                        observedAt: envelope.observedAt
+                    )
+                    try? await coordinator.ingest(observed)
+                }
+            }
+        }
     }
 
     func respond(to task: AgentTask, response: UserResponse) {
