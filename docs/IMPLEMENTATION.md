@@ -10,6 +10,8 @@ Abigent 同时提供桌面宠物和菜单栏入口。宠物用于低打扰状态
 
 真实验证发现：独立 App Server 能读取本机任务，但 Codex 桌面自己的 App Server 通过 stdio 私有连接到桌面进程，没有公开共享 Socket。因此历史发现和结构化数据走 App Server；实时开始与完成状态由 `CodexSessionWatcher` 监听本机 `.codex/sessions` 追加日志中的事件类型、时间和任务 ID，不读取或上传对话正文。定位和桌面拥有的输入请求可使用默认关闭的 `CodexAccessibilityFallback`，它只搜索 macOS 辅助功能角色与标签，不读取像素或依赖坐标。
 
+0.2 版增加 Hook 主通道：Codex 在 `SessionStart`、`UserPromptSubmit`、工具调用、权限申请与 `Stop` 时启动包内 `abigent-hook`，通过当前用户专用 Unix Socket 把事件主动推给 Abigent。Hook 优先于 App Server 和日志恢复；Stop 后结果提取器读取对应 session 的最后一个闭合 turn，保存真实 Agent 回复、摘要和返回时间。Hook 安装使用所有权标记增量合并，不覆盖 Flux Island 或其他第三方条目。
+
 ## 统一任务核心
 
 `AgentConnector` 隔离不同 Agent 的协议。`AgentTask` 统一表示来源、标题、项目、状态、待处理请求、可信结果和时间。`TaskReducer` 拒绝串错任务的事件并忽略旧状态；缺少来源数据时保持空值，不猜测进度、文件或测试结果。
@@ -27,6 +29,8 @@ SwiftUI `MenuBarExtra` 将任务按需要操作、运行中和最近完成排序
 ## 桌面宠物
 
 `PetWindowController` 使用透明、无边框、跨 Space 的 AppKit `NSPanel`。`PetAnimationState` 按需要操作、断线、运行、完成、空闲的优先级聚合任务。半写实角色由用户小猫照片生成，保留大耳朵、金色眼睛、暖灰棕毛色和修长比例。首版使用一张透明高质量基础图，配合 SwiftUI 缩放、旋转、位移和语义徽记实现五种状态；系统“减少动态效果”开启后自动使用静态画面。
+
+鼠标悬停小猫会在 180 ms 后展开结果卡，展示当前任务或最近完成任务的 3–5 行结论、返回时间、文件和测试证据；点击可展开完整 Agent 回复。鼠标移出有 250 ms 缓冲，卡片窗口向左扩展而不移动小猫。
 
 ## 权限与安全
 

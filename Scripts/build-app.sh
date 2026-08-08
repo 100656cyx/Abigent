@@ -13,21 +13,29 @@ SDKROOT="$sdk_path" \
 CLANG_MODULE_CACHE_PATH="$cache_root/clang" \
 SWIFTPM_MODULECACHE_OVERRIDE="$cache_root/swiftpm" \
 swift build --disable-sandbox --scratch-path "$build_root" -c release --product Abigent
+SDKROOT="$sdk_path" \
+CLANG_MODULE_CACHE_PATH="$cache_root/clang" \
+SWIFTPM_MODULECACHE_OVERRIDE="$cache_root/swiftpm" \
+swift build --disable-sandbox --scratch-path "$build_root" -c release --product abigent-hook
 
 binary_path=$(find "$build_root" -path '*/release/Abigent' -type f -perm -111 | head -n 1)
 bundle_path=$(find "$build_root" -path '*/release/Abigent_AbigentApp.bundle' -type d | head -n 1)
+hook_path=$(find "$build_root" -path '*/release/abigent-hook' -type f -perm -111 | head -n 1)
 test -n "$binary_path"
 test -n "$bundle_path"
+test -n "$hook_path"
 
 if [[ "$app_path" != "$project_root/dist/Abigent.app" ]]; then
   echo "Refusing unexpected app path" >&2
   exit 2
 fi
 rm -rf "$app_path"
-mkdir -p "$app_path/Contents/MacOS" "$app_path/Contents/Resources"
+mkdir -p "$app_path/Contents/MacOS" "$app_path/Contents/Resources" "$app_path/Contents/Helpers"
 cp "$binary_path" "$app_path/Contents/MacOS/Abigent"
 cp Resources/Info.plist "$app_path/Contents/Info.plist"
 cp -R "$bundle_path" "$app_path/Contents/Resources/Abigent_AbigentApp.bundle"
+cp "$hook_path" "$app_path/Contents/Helpers/abigent-hook"
+chmod 755 "$app_path/Contents/Helpers/abigent-hook"
 
 iconset="$cache_root/Abigent.iconset"
 rm -rf "$iconset"
@@ -43,6 +51,7 @@ if ! iconutil -c icns "$iconset" -o "$app_path/Contents/Resources/Abigent.icns";
 fi
 
 identity=${ABIGENT_SIGNING_IDENTITY:--}
-codesign --force --deep --options runtime --entitlements Resources/Abigent.entitlements --sign "$identity" "$app_path"
+codesign --force --options runtime --sign "$identity" "$app_path/Contents/Helpers/abigent-hook"
+codesign --force --options runtime --entitlements Resources/Abigent.entitlements --sign "$identity" "$app_path"
 codesign --verify --deep --strict "$app_path"
 echo "$app_path"
