@@ -1,3 +1,4 @@
+import AbigentCore
 import Foundation
 
 public enum CodexTransportError: Error, Sendable, Equatable {

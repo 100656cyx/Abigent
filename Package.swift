@@ -9,11 +9,23 @@ let package = Package(
         .library(name: "AbigentCodex", targets: ["AbigentCodex"]),
         .library(name: "AbigentPersistence", targets: ["AbigentPersistence"]),
         .library(name: "AbigentRuntime", targets: ["AbigentRuntime"]),
+        .library(name: "AbigentHooks", targets: ["AbigentHooks"]),
+        .executable(name: "abigent-hook", targets: ["AbigentHookRelay"]),
         .executable(name: "abigent-diagnostics", targets: ["AbigentDiagnostics"]),
         .executable(name: "Abigent", targets: ["AbigentApp"])
     ],
     targets: [
         .target(name: "AbigentCore", path: "AppSources/AbigentCore"),
+        .target(
+            name: "AbigentHooks",
+            dependencies: ["AbigentCore"],
+            path: "AppSources/AbigentHooks"
+        ),
+        .executableTarget(
+            name: "AbigentHookRelay",
+            dependencies: ["AbigentCore", "AbigentHooks"],
+            path: "AppSources/AbigentHookRelay"
+        ),
         .systemLibrary(name: "CSQLite", path: "AppSources/CSQLite"),
         .target(
             name: "AbigentPersistence",
@@ -43,6 +55,7 @@ let package = Package(
         ),
         .testTarget(name: "AbigentCoreTests", dependencies: ["AbigentCore"]),
         .testTarget(name: "AbigentCodexTests", dependencies: ["AbigentCodex"]),
+        .testTarget(name: "AbigentHooksTests", dependencies: ["AbigentHooks"]),
         .testTarget(name: "AbigentPersistenceTests", dependencies: ["AbigentPersistence"]),
         .testTarget(
             name: "AbigentRuntimeTests",
