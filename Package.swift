@@ -9,7 +9,8 @@ let package = Package(
         .library(name: "AbigentCodex", targets: ["AbigentCodex"]),
         .library(name: "AbigentPersistence", targets: ["AbigentPersistence"]),
         .library(name: "AbigentRuntime", targets: ["AbigentRuntime"]),
-        .executable(name: "abigent-diagnostics", targets: ["AbigentDiagnostics"])
+        .executable(name: "abigent-diagnostics", targets: ["AbigentDiagnostics"]),
+        .executable(name: "Abigent", targets: ["AbigentApp"])
     ],
     targets: [
         .target(name: "AbigentCore", path: "AppSources/AbigentCore"),
@@ -33,6 +34,11 @@ let package = Package(
             name: "AbigentDiagnostics",
             dependencies: ["AbigentCore", "AbigentCodex"],
             path: "AppSources/AbigentDiagnostics"
+        ),
+        .executableTarget(
+            name: "AbigentApp",
+            dependencies: ["AbigentCore", "AbigentCodex", "AbigentPersistence", "AbigentRuntime"],
+            path: "AppSources/AbigentApp"
         ),
         .testTarget(name: "AbigentCoreTests", dependencies: ["AbigentCore"]),
         .testTarget(name: "AbigentCodexTests", dependencies: ["AbigentCodex"]),
