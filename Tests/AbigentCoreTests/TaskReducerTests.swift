@@ -29,6 +29,31 @@ final class TaskReducerTests: XCTestCase {
         XCTAssertEqual(next.attentionRequest, request)
     }
 
+    func testNewWorkingTurnClearsPreviousTurnResult() throws {
+        var current = task(state: .completed, updatedAt: 10)
+        current.completedAt = Date(timeIntervalSince1970: 10)
+        current.result = TaskResult(
+            summary: "上一轮",
+            changedFiles: nil,
+            tests: nil,
+            detail: "上一轮回复",
+            returnedAt: Date(timeIntervalSince1970: 10)
+        )
+
+        let next = try TaskReducer.reduce(
+            current: current,
+            event: .stateChanged(
+                id: current.id,
+                state: .working,
+                updatedAt: Date(timeIntervalSince1970: 20)
+            )
+        )
+
+        XCTAssertEqual(next.state, .working)
+        XCTAssertNil(next.result)
+        XCTAssertNil(next.completedAt)
+    }
+
     func testHookEventWinsOverLaterRecoveryEvent() throws {
         var current = task(state: .working, updatedAt: 20)
         current.provenance = .hook

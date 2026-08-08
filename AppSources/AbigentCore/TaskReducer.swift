@@ -37,7 +37,11 @@ public enum TaskReducer {
             var next = current
             next.state = state
             next.updatedAt = updatedAt
-            if state == .working { next.attentionRequest = nil }
+            if state == .working {
+                next.attentionRequest = nil
+                next.result = nil
+                next.completedAt = nil
+            }
             if state == .completed || state == .failed || state == .cancelled {
                 next.completedAt = updatedAt
             }
