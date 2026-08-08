@@ -22,7 +22,7 @@ final class CodexSessionWatcher: @unchecked Sendable {
                     if offsets[file] == nil {
                         let data = (try? Data(contentsOf: file)) ?? Data()
                         offsets[file] = UInt64(data.count)
-                        if let event = Self.currentWorkingEvent(in: data, file: file) { yield(event) }
+                        if let event = Self.initialLifecycleEvent(in: data, file: file) { yield(event) }
                         continue
                     }
                     guard let offset = offsets[file], size > offset,
@@ -52,7 +52,7 @@ final class CodexSessionWatcher: @unchecked Sendable {
         task = nil
     }
 
-    private static func currentWorkingEvent(in data: Data, file: URL) -> AgentEvent? {
+    private static func initialLifecycleEvent(in data: Data, file: URL) -> AgentEvent? {
         var latest: AgentEvent?
         for line in data.split(separator: 0x0A) {
             guard let event = event(from: Data(line), file: file) else { continue }
@@ -60,7 +60,27 @@ final class CodexSessionWatcher: @unchecked Sendable {
                 latest = state == .working || state == .needsInput ? event : nil
             }
         }
-        return latest
+        guard let latest else { return nil }
+        let modifiedAt = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            ?? .distantPast
+        guard let sourceTaskID = taskID(from: file) else { return nil }
+        if Date().timeIntervalSince(modifiedAt) <= 10 * 60 {
+            let state: TaskState
+            switch latest {
+            case let .stateChanged(_, value, _): state = value
+            default: return nil
+            }
+            return .stateChanged(
+                id: .init(source: .codex, sourceTaskID: sourceTaskID),
+                state: state,
+                updatedAt: Date()
+            )
+        }
+        return .stateChanged(
+            id: .init(source: .codex, sourceTaskID: sourceTaskID),
+            state: .discovered,
+            updatedAt: Date()
+        )
     }
 
     private static func event(from data: Data, file: URL) -> AgentEvent? {
