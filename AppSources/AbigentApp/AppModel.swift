@@ -47,6 +47,7 @@ final class AppModel: ObservableObject {
     private let notifications = NotificationCoordinator()
     private let petController = PetWindowController()
     private let petPreferences = PetPreferenceStore()
+    private let applicationStartupGate = ApplicationStartupGate()
     private var started = false
     private var appServerRecoveryRequests: [String: Date] = [:]
     private var onboardingWindowController: NSWindowController?
@@ -91,24 +92,27 @@ final class AppModel: ObservableObject {
             self.petScale = placement.normalizedScale
             Task { try? await self.petPreferences.save(placement) }
         }
-        petController.setVisible(true)
         hookInstallationStatus = hookInstaller?.inspect() ?? .notInstalled
         refreshOnboardingState()
-        Task {
-            let placement = await petPreferences.load()
-            petScale = placement.normalizedScale
-            petController.apply(placement)
-            await start()
-        }
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            let defaults = UserDefaults.standard
-            guard !defaults.bool(forKey: Self.onboardingAutoShownKey),
-                  !defaults.bool(forKey: Self.onboardingCompletedKey)
-            else { return }
-            defaults.set(true, forKey: Self.onboardingAutoShownKey)
-            self.showOnboarding()
-        }
+    }
+
+    func applicationDidBecomeReady() async {
+        guard applicationStartupGate.begin() else { return }
+        petController.start(visible: showPet)
+        let placement = await petPreferences.load()
+        petScale = placement.normalizedScale
+        petController.apply(placement)
+        await start()
+        showOnboardingAutomaticallyIfNeeded()
+    }
+
+    private func showOnboardingAutomaticallyIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.onboardingAutoShownKey),
+              !defaults.bool(forKey: Self.onboardingCompletedKey)
+        else { return }
+        defaults.set(true, forKey: Self.onboardingAutoShownKey)
+        showOnboarding()
     }
 
     static func make() -> AppModel {
