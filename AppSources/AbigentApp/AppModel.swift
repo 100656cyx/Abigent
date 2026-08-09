@@ -10,6 +10,8 @@ import SwiftUI
 @MainActor
 final class AppModel: ObservableObject {
     enum ActionState: Equatable { case idle, sending, failed(String) }
+    private static let onboardingAutoShownKey = "onboardingAutoShown"
+    private static let onboardingCompletedKey = "onboardingCompleted"
 
     @Published private(set) var tasks: [AgentTask] = [] {
         didSet {
@@ -99,9 +101,12 @@ final class AppModel: ObservableObject {
             await start()
         }
         DispatchQueue.main.async { [weak self] in
-            guard let self,
-                  !UserDefaults.standard.bool(forKey: "onboardingCompleted")
+            guard let self else { return }
+            let defaults = UserDefaults.standard
+            guard !defaults.bool(forKey: Self.onboardingAutoShownKey),
+                  !defaults.bool(forKey: Self.onboardingCompletedKey)
             else { return }
+            defaults.set(true, forKey: Self.onboardingAutoShownKey)
             self.showOnboarding()
         }
     }
@@ -194,6 +199,10 @@ final class AppModel: ObservableObject {
     }
 
     func refreshOnboardingState() {
+        if UserDefaults.standard.bool(forKey: Self.onboardingCompletedKey) {
+            onboardingState = .ready
+            return
+        }
         let codexExists = FileManager.default.fileExists(
             atPath: "/Applications/ChatGPT.app/Contents/Resources/codex"
         )
@@ -207,7 +216,14 @@ final class AppModel: ObservableObject {
     func waitForCodexSessionStart() { onboardingState = .waitingForSessionStart }
 
     func completeOnboarding() {
-        UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+        markOnboardingVerified()
+    }
+
+    func markOnboardingVerified() {
+        let defaults = UserDefaults.standard
+        defaults.set(true, forKey: Self.onboardingAutoShownKey)
+        defaults.set(true, forKey: Self.onboardingCompletedKey)
+        onboardingState = .ready
         dismissOnboarding()
     }
 
@@ -283,10 +299,7 @@ final class AppModel: ObservableObject {
         let envelopes = hookServer.events()
         Task { [weak self] in
             for await envelope in envelopes {
-                if envelope.event == CodexHookEvent.sessionStart.rawValue,
-                   self?.onboardingState == .waitingForSessionStart {
-                    await MainActor.run { self?.onboardingState = .ready }
-                }
+                await MainActor.run { self?.markOnboardingVerified() }
                 let events = await hookNormalizer.normalize(envelope)
                 for event in events { try? await coordinator.ingest(event) }
                 guard envelope.event == CodexHookEvent.stop.rawValue,
