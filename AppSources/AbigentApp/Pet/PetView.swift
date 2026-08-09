@@ -21,6 +21,7 @@ struct PetView: View {
     @State private var cardVisible = false
     @State private var expanded = false
     @State private var hoverTask: Task<Void, Never>?
+    @State private var pointerInsideInteractionArea = false
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { timeline in
@@ -34,7 +35,6 @@ struct PetView: View {
                         onOpenCodex: { onOpenCodex(task) }
                     )
                     .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .trailing)))
-                    .onHover(perform: scheduleVisibility)
                 }
                 ZStack(alignment: .bottomTrailing) {
                     Image(nsImage: petImage)
@@ -48,16 +48,9 @@ struct PetView: View {
                     badge
                         .padding(18 * petScale)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    PetResizeHandle(
-                        scale: petScale,
-                        onScaleChanged: onScaleChanged,
-                        onScaleEnded: onScaleEnded
-                    )
-                    .padding(4)
                 }
                 .frame(width: 190 * petScale, height: 250 * petScale)
                 .contentShape(Rectangle())
-                .onHover(perform: scheduleVisibility)
                 .overlay(alignment: .topTrailing) {
                     if controlsVisible {
                         PetControlPanel(
@@ -84,6 +77,7 @@ struct PetView: View {
                     }
                 }
             }
+            .onHover(perform: scheduleVisibility)
             .padding(5)
             .animation(.easeInOut(duration: 0.18), value: cardVisible)
         }
@@ -95,6 +89,7 @@ struct PetView: View {
     @Environment(\.openSettings) private var openSettings
 
     private func scheduleVisibility(_ hovering: Bool) {
+        pointerInsideInteractionArea = hovering
         hoverTask?.cancel()
         if hovering {
             hoverTask = Task {
@@ -147,7 +142,7 @@ struct PetView: View {
         return image
     }
     private func animationScale(_ phase: Double) -> CGFloat {
-        guard !reduceMotion else { return 1 }
+        guard !reduceMotion, !pointerInsideInteractionArea else { return 1 }
         switch state {
         case .idle: return 1 + 0.006 * sin(phase * 2)
         case .working: return 1 + 0.004 * sin(phase * 4)
@@ -157,12 +152,12 @@ struct PetView: View {
         }
     }
     private func rotation(_ phase: Double) -> Angle {
-        guard !reduceMotion else { return .zero }
+        guard !reduceMotion, !pointerInsideInteractionArea else { return .zero }
         if state == .needsInput { return .degrees(sin(phase * 5) * 1.8) }
         return .zero
     }
     private func verticalOffset(_ phase: Double) -> CGFloat {
-        guard !reduceMotion, state == .completed else { return 0 }
+        guard !reduceMotion, !pointerInsideInteractionArea, state == .completed else { return 0 }
         return -4 * abs(sin(phase * 3))
     }
     private var stateLabel: String {
