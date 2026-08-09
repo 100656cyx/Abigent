@@ -7,16 +7,17 @@ dist_root="$project_root/dist"
 app_path="$dist_root/Abigent.app"
 sdk_path=${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}
 cache_root="${TMPDIR:-/tmp}/abigent-build-cache"
+build_triple=${ABIGENT_BUILD_TRIPLE:-arm64-apple-macosx14.0}
 
 mkdir -p "$cache_root/clang" "$cache_root/swiftpm" "$dist_root"
 SDKROOT="$sdk_path" \
 CLANG_MODULE_CACHE_PATH="$cache_root/clang" \
 SWIFTPM_MODULECACHE_OVERRIDE="$cache_root/swiftpm" \
-swift build --disable-sandbox --scratch-path "$build_root" -c release --product Abigent
+swift build --disable-sandbox --scratch-path "$build_root" --triple "$build_triple" -c release --product Abigent
 SDKROOT="$sdk_path" \
 CLANG_MODULE_CACHE_PATH="$cache_root/clang" \
 SWIFTPM_MODULECACHE_OVERRIDE="$cache_root/swiftpm" \
-swift build --disable-sandbox --scratch-path "$build_root" -c release --product abigent-hook
+swift build --disable-sandbox --scratch-path "$build_root" --triple "$build_triple" -c release --product abigent-hook
 
 binary_path=$(find "$build_root" -path '*/release/Abigent' -type f -perm -111 | head -n 1)
 bundle_path=$(find "$build_root" -path '*/release/Abigent_AbigentApp.bundle' -type d | head -n 1)
