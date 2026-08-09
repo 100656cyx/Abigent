@@ -22,6 +22,7 @@ final class AppModel: ObservableObject {
     @Published var actions: [GlobalTaskID: ActionState] = [:]
     @Published var showPet = true { didSet { petController.setVisible(showPet) } }
     @Published var petAlwaysOnTop = true { didSet { petController.setAlwaysOnTop(petAlwaysOnTop) } }
+    @Published private(set) var petScale: CGFloat = PetPlacement.defaultScale
     @Published var notificationsEnabled = true
     @Published var accessibilityFallbackEnabled = false
     @Published var showHoverResults = UserDefaults.standard.object(forKey: "showHoverResults") as? Bool ?? true {
@@ -41,6 +42,7 @@ final class AppModel: ObservableObject {
     private let hookInstaller: CodexHookInstaller?
     private let notifications = NotificationCoordinator()
     private let petController = PetWindowController()
+    private let petPreferences = PetPreferenceStore()
     private var started = false
     private var appServerRecoveryRequests: [String: Date] = [:]
 
@@ -74,9 +76,19 @@ final class AppModel: ObservableObject {
         }
         self.hookInstaller = hookInstaller
         petController.onOpenCodex = { [weak self] task in self?.openCodex(task) }
+        petController.onPlacementChange = { [weak self] placement in
+            guard let self else { return }
+            self.petScale = placement.normalizedScale
+            Task { try? await self.petPreferences.save(placement) }
+        }
         petController.setVisible(true)
         hookInstallationStatus = hookInstaller?.inspect() ?? .notInstalled
-        Task { await start() }
+        Task {
+            let placement = await petPreferences.load()
+            petScale = placement.normalizedScale
+            petController.apply(placement)
+            await start()
+        }
     }
 
     static func make() -> AppModel {
@@ -125,6 +137,16 @@ final class AppModel: ObservableObject {
         if case .installed = hookInstallationStatus { return true }
         return false
     }
+
+    var petScalePercent: Int { Int((petScale * 100).rounded()) }
+
+    func setPetScale(_ value: CGFloat, persist: Bool = true) {
+        let normalized = min(max(value, PetPlacement.minimumScale), PetPlacement.maximumScale)
+        petScale = normalized
+        petController.setScale(normalized, persist: persist)
+    }
+
+    func resetPetScale() { setPetScale(PetPlacement.defaultScale) }
 
     func enableHooks() {
         guard let hookInstaller else { return }

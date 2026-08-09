@@ -5,7 +5,10 @@ import SwiftUI
 struct PetView: View {
     let state: PetAnimationState
     let task: AgentTask?
+    let petScale: CGFloat
     let onCardVisibilityChanged: (Bool) -> Void
+    let onScaleChanged: (CGFloat) -> Void
+    let onScaleEnded: () -> Void
     let onOpenCodex: (AgentTask) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var cardVisible = false
@@ -26,18 +29,26 @@ struct PetView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .trailing)))
                     .onHover(perform: scheduleVisibility)
                 }
-                ZStack(alignment: .topTrailing) {
+                ZStack(alignment: .bottomTrailing) {
                     Image(nsImage: petImage)
-                    .resizable()
-                    .scaledToFit()
-                    .scaleEffect(scale(phase))
-                    .rotationEffect(rotation(phase))
-                    .offset(y: verticalOffset(phase))
-                    .animation(.easeInOut(duration: 0.35), value: state)
-                    .accessibilityLabel("Abigent，\(stateLabel)")
-                    badge.padding(18)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(animationScale(phase))
+                        .rotationEffect(rotation(phase))
+                        .offset(y: verticalOffset(phase))
+                        .animation(.easeInOut(duration: 0.35), value: state)
+                        .accessibilityLabel("Abigent，\(stateLabel)")
+                    badge
+                        .padding(18 * petScale)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    PetResizeHandle(
+                        scale: petScale,
+                        onScaleChanged: onScaleChanged,
+                        onScaleEnded: onScaleEnded
+                    )
+                    .padding(4)
                 }
-                .frame(width: 190, height: 250)
+                .frame(width: 190 * petScale, height: 250 * petScale)
                 .contentShape(Rectangle())
                 .onHover(perform: scheduleVisibility)
             }
@@ -98,7 +109,7 @@ struct PetView: View {
               let image = NSImage(contentsOf: url) else { return NSImage() }
         return image
     }
-    private func scale(_ phase: Double) -> CGFloat {
+    private func animationScale(_ phase: Double) -> CGFloat {
         guard !reduceMotion else { return 1 }
         switch state {
         case .idle: return 1 + 0.006 * sin(phase * 2)
