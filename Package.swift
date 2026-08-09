@@ -60,6 +60,10 @@ let package = Package(
         .testTarget(
             name: "AbigentRuntimeTests",
             dependencies: ["AbigentRuntime", "AbigentCore", "AbigentPersistence"]
+        ),
+        .testTarget(
+            name: "AbigentAppTests",
+            dependencies: ["AbigentApp"]
         )
     ]
 )

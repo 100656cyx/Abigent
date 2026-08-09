@@ -25,7 +25,11 @@ final class PetWindowController: NSObject, NSWindowDelegate {
     private static let resultGap: CGFloat = 14
     private static let controlGap: CGFloat = 12
 
-    var state: PetAnimationState = .idle { didSet { renderPet() } }
+    var state: PetAnimationState = .idle {
+        didSet {
+            if isStarted { renderPet() }
+        }
+    }
     var task: AgentTask? {
         didSet {
             if task == nil { hideResultPanel(force: true) }
@@ -50,6 +54,7 @@ final class PetWindowController: NSObject, NSWindowDelegate {
     private var resultExpanded = false
     private var controlVisible = false
     private var hoverTask: Task<Void, Never>?
+    private(set) var isStarted = false
 
     override init() {
         panel = Self.makePanel(size: Self.basePetSize)
@@ -63,8 +68,6 @@ final class PetWindowController: NSObject, NSWindowDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
-        positionOnVisibleScreen()
-        renderPet()
     }
 
     deinit {
@@ -72,8 +75,20 @@ final class PetWindowController: NSObject, NSWindowDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 
+    func start(visible: Bool) {
+        guard !isStarted else {
+            setVisible(visible)
+            return
+        }
+        isStarted = true
+        positionOnVisibleScreen()
+        renderPet()
+        setVisible(visible)
+    }
+
     func setVisible(_ visible: Bool) {
         if visible {
+            guard isStarted else { return }
             panel.orderFrontRegardless()
         } else {
             hoverTask?.cancel()
@@ -97,7 +112,7 @@ final class PetWindowController: NSObject, NSWindowDelegate {
     func setScale(_ value: CGFloat, persist: Bool = false) {
         scale = min(max(value, PetPlacement.minimumScale), PetPlacement.maximumScale)
         resizePetPanel()
-        renderPet()
+        if isStarted { renderPet() }
         if controlVisible { renderControlPanel() }
         anchorAuxiliaryPanels()
         if persist { publishPlacement() }
@@ -110,7 +125,7 @@ final class PetWindowController: NSObject, NSWindowDelegate {
         frame = clampedFrame(frame, to: NSScreen.main?.visibleFrame)
         panel.setFrame(frame, display: true)
         applyingPlacement = false
-        renderPet()
+        if isStarted { renderPet() }
         anchorAuxiliaryPanels()
     }
 
