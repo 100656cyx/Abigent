@@ -72,6 +72,7 @@ Abigent 是一个完全在本地运行的 macOS Codex 桌面伴侣。它用一�
 ## 故障排查
 
 - **小猫没有动作**：确认已启用实时同步，并使用 `⌘Q` 完整重启 Codex。
+- **Hooks 已配置、Flux Island 正常，但 Abigent 不同步**：在 Codex 的 Hooks 设置中，逐项信任并启用命令包含 `Abigent.app/Contents/Helpers/abigent-hook` 的 handler，然后用 `⌘Q` 完全重启 Codex并发送一个新任务。第三方 Hook 已获信任，不代表同组的 Abigent handler 也已获信任。
 - **首次打开被拦截**：先尝试打开一次，再到“隐私与安全性”点击“仍要打开”。
 - **一直转圈**：等待 Codex 当前任务真正结束；若长时间没有变化，重启 Abigent 后新发一轮任务。
 - **没有摘要**：确认 Codex 已产生本轮最终回复，并使用最新 Beta。
@@ -106,6 +107,7 @@ ABIGENT_VERSION=1.0.0-beta.2 ABIGENT_BUILD=7 Scripts/release.sh
 - [隐私说明](PRIVACY.md)
 - [更新记录](CHANGELOG.md)
 - [贡献指南](CONTRIBUTING.md)
+- [Codex Hook 信任排障](docs/troubleshooting/codex-hook-trust.md)
 - [1.0.0 Beta 2 发布说明](docs/releases/1.0.0-beta.2.md)
 - [1.0.0 Beta 1 发布说明](docs/releases/1.0.0-beta.1.md)
 

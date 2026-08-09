@@ -31,12 +31,37 @@
 
 1. 在 Abigent 首次设置中点击“启用实时同步”。
 2. Abigent 会把自己的 Hook 条目安全合并到 `~/.codex/hooks.json`。
-3. 使用 `⌘Q` 完全退出 Codex；只关闭窗口不够。
-4. 重新打开 Codex。
-5. 进入任意会话发送一个任务。
-6. 小猫显示工作状态，任务完成后悬停可查看本轮摘要。
+3. 打开 Codex 的 Hooks 设置，信任并启用命令中包含 `Abigent.app/Contents/Helpers/abigent-hook` 的 Abigent handler。
+4. 确认以下七个事件的 Abigent handler 均已允许：
+
+```text
+SessionStart
+UserPromptSubmit
+PreToolUse
+PermissionRequest
+PostToolUse
+Stop
+SubagentStop
+```
+
+5. 使用 `⌘Q` 完全退出 Codex；只关闭窗口不够。
+6. 重新打开 Codex。
+7. 进入任意会话发送一个新任务。
+8. 小猫显示工作状态，任务完成后悬停可查看本轮摘要。
+
+连接过程包含三个不同阶段：
+
+```text
+配置已写入
+等待 Codex 信任
+已收到真实事件
+```
+
+`hooks.json` 中存在 Abigent 命令只代表“配置已写入”。Codex 会对同一事件中的每个 handler 分别保存信任状态；Flux Island 或其他 Hook 已经正常运行，不代表同组的 Abigent handler 也已获信任。只有新任务的真实事件到达 Abigent 后，才能确认实时同步已经连接。
 
 首次设置只自动出现一次。以后需要检查连接时，可从 Abigent 设置手动打开。
+
+如果配置完整但小猫仍然没有动作，请参阅 [Codex Hook 信任排障](docs/troubleshooting/codex-hook-trust.md)。
 
 ## 5. 基本操作
 
