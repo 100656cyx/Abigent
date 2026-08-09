@@ -15,10 +15,14 @@ final class TaskRepositoryTests: XCTestCase {
             completedAt: Date(timeIntervalSince1970: 1), muted: false
         )
         try await repository.upsert(task)
-        XCTAssertEqual(try await repository.allTasks(), [task])
-        XCTAssertTrue(try await repository.recordNotification(task: task))
-        XCTAssertFalse(try await repository.recordNotification(task: task))
+        let storedTasks = try await repository.allTasks()
+        let firstNotification = try await repository.recordNotification(task: task)
+        let duplicateNotification = try await repository.recordNotification(task: task)
+        XCTAssertEqual(storedTasks, [task])
+        XCTAssertTrue(firstNotification)
+        XCTAssertFalse(duplicateNotification)
         try await repository.clearAll()
-        XCTAssertEqual(try await repository.allTasks(), [])
+        let remainingTasks = try await repository.allTasks()
+        XCTAssertEqual(remainingTasks, [])
     }
 }

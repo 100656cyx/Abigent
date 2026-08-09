@@ -24,7 +24,8 @@ final class CodexProcessTransportTests: XCTestCase {
         )
         try await transport.start()
         var iterator = await transport.messages().makeAsyncIterator()
-        XCTAssertEqual(await iterator.next(), .protocolError)
+        let event = await iterator.next()
+        XCTAssertEqual(event, .protocolError)
         await transport.stop()
     }
 }

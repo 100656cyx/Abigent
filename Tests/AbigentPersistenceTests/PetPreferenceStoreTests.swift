@@ -23,7 +23,8 @@ final class PetPreferenceStoreTests: XCTestCase {
     func testCorruptPreferenceReturnsDefault() async {
         let fixture = Fixture()
         fixture.defaults.set(Data("invalid".utf8), forKey: PetPreferenceStore.storageKey)
-        XCTAssertEqual(await fixture.store.load(), PetPlacement())
+        let placement = await fixture.store.load()
+        XCTAssertEqual(placement, PetPlacement())
     }
 
     private final class Fixture {

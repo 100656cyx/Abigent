@@ -27,7 +27,8 @@ final class CodexHookNormalizerTests: XCTestCase {
     }
 
     func testSubagentStopDoesNotCompleteParent() async {
-        XCTAssertTrue(await CodexHookNormalizer().normalize(envelope("SubagentStop")).isEmpty)
+        let events = await CodexHookNormalizer().normalize(envelope("SubagentStop"))
+        XCTAssertTrue(events.isEmpty)
     }
 
     private func envelope(_ event: String, extra: [String: JSONValue] = [:]) -> HookEnvelope {

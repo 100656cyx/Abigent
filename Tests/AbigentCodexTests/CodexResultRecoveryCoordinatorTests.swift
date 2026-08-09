@@ -18,8 +18,10 @@ final class CodexResultRecoveryCoordinatorTests: XCTestCase {
         }
         try await waitUntil { await delivered.value == 1 }
 
-        XCTAssertEqual(await attempts.value, 3)
-        XCTAssertEqual(await delivered.value, 1)
+        let attemptCount = await attempts.value
+        let deliveryCount = await delivered.value
+        XCTAssertEqual(attemptCount, 3)
+        XCTAssertEqual(deliveryCount, 1)
     }
 
     func testNewGenerationCancelsOlderSameSessionRecovery() async throws {
@@ -37,7 +39,8 @@ final class CodexResultRecoveryCoordinatorTests: XCTestCase {
         }
         try await waitUntil { await delivered.values.count == 1 }
 
-        XCTAssertEqual(await delivered.values, ["2.0"])
+        let values = await delivered.values
+        XCTAssertEqual(values, ["2.0"])
     }
 
     private func waitUntil(

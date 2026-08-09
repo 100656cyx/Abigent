@@ -26,8 +26,9 @@ final class CodexConnectorTests: XCTestCase {
         let connector = CodexConnector(transport: transport)
         try await connector.connect()
         let tasks = try await connector.initialSnapshot()
+        let calls = await transport.recordedCalls()
         XCTAssertEqual(tasks, [])
-        XCTAssertEqual(await transport.recordedCalls(), ["start", "initialize", "initialized", "thread/list"])
+        XCTAssertEqual(calls, ["start", "initialize", "initialized", "thread/list"])
         await connector.disconnect()
     }
 }
