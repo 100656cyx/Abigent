@@ -10,10 +10,16 @@ final class CodexResultRecoveryCoordinatorTests: XCTestCase {
         let coordinator = CodexResultRecoveryCoordinator(delays: [.zero, .zero, .zero]) { _, date in
             let attempt = await attempts.increment()
             if attempt < 3 { throw CodexResultExtractorError.resultNotYetAvailable }
-            return TaskResult(summary: "完成", detail: "最终回复", returnedAt: date)
+            return TaskResult(
+                summary: "完成",
+                changedFiles: nil,
+                tests: nil,
+                detail: "最终回复",
+                returnedAt: date
+            )
         }
 
-        await coordinator.recover(sessionID: UUID().uuidString, stopObservedAt: .now) { _ in
+        await coordinator.recover(sessionID: UUID().uuidString, stopObservedAt: Date.now) { _ in
             _ = await delivered.increment()
         }
         try await waitUntil { await delivered.value == 1 }
@@ -28,7 +34,13 @@ final class CodexResultRecoveryCoordinatorTests: XCTestCase {
         let delivered = Messages()
         let sessionID = UUID().uuidString
         let coordinator = CodexResultRecoveryCoordinator(delays: [.milliseconds(50)]) { _, date in
-            TaskResult(summary: nil, detail: date.timeIntervalSince1970.description, returnedAt: date)
+            TaskResult(
+                summary: nil,
+                changedFiles: nil,
+                tests: nil,
+                detail: date.timeIntervalSince1970.description,
+                returnedAt: date
+            )
         }
 
         await coordinator.recover(sessionID: sessionID, stopObservedAt: Date(timeIntervalSince1970: 1)) {

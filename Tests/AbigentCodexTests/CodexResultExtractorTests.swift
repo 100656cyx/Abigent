@@ -92,7 +92,7 @@ final class CodexResultExtractorTests: XCTestCase {
         XCTAssertEqual(result.detail, "有效回复")
     }
 
-    private static func event(
+    private func event(
         _ type: String,
         timestamp: String? = nil,
         extra: [String: Any] = [:]

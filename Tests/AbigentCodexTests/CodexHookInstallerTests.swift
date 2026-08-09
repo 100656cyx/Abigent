@@ -68,7 +68,7 @@ final class CodexHookInstallerTests: XCTestCase {
         let relay = URL(fileURLWithPath: "/Applications/Abigent.app/Contents/Helpers/abigent-hook")
         let installer: CodexHookInstaller
 
-        init(json: [String: Any]) throws {
+        convenience init(json: [String: Any]) throws {
             try self.init(raw: JSONSerialization.data(withJSONObject: json))
         }
 

@@ -1,3 +1,4 @@
+import AbigentCore
 import Foundation
 import XCTest
 @testable import AbigentCodex
