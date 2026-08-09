@@ -125,7 +125,7 @@ git commit -m "fix: steady the pet while hovering"
 - Modify generated artifact: `dist/Abigent-1.0.0-beta.1-macOS-arm64.dmg`
 
 **Interfaces:**
-- Consumes: `scripts/release.sh 1.0.0-beta.1 2`.
+- Consumes: `ABIGENT_VERSION=1.0.0-beta.1 ABIGENT_BUILD=2 scripts/release.sh`.
 - Produces: installed build 2 and refreshed versioned DMG/checksum.
 
 - [ ] **Step 1: Build release artifacts**
@@ -133,7 +133,7 @@ git commit -m "fix: steady the pet while hovering"
 Run:
 
 ```bash
-scripts/release.sh 1.0.0-beta.1 2
+ABIGENT_VERSION=1.0.0-beta.1 ABIGENT_BUILD=2 scripts/release.sh
 ```
 
 Expected: app and DMG are built, signed, and verified.
