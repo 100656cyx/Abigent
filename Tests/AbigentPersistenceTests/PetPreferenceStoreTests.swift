@@ -21,22 +21,23 @@ final class PetPreferenceStoreTests: XCTestCase {
     }
 
     func testCorruptPreferenceReturnsDefault() async {
-        let fixture = Fixture()
-        fixture.defaults.set(Data("invalid".utf8), forKey: PetPreferenceStore.storageKey)
+        let fixture = Fixture(initialData: Data("invalid".utf8))
         let placement = await fixture.store.load()
         XCTAssertEqual(placement, PetPlacement())
     }
 
     private final class Fixture {
         let suiteName = "PetPreferenceStoreTests-\(UUID().uuidString)"
-        let defaults: UserDefaults
         let store: PetPreferenceStore
 
-        init() {
-            defaults = UserDefaults(suiteName: suiteName)!
+        init(initialData: Data? = nil) {
+            let defaults = UserDefaults(suiteName: suiteName)!
+            if let initialData {
+                defaults.set(initialData, forKey: PetPreferenceStore.storageKey)
+            }
             store = PetPreferenceStore(defaults: defaults)
         }
 
-        deinit { defaults.removePersistentDomain(forName: suiteName) }
+        deinit { UserDefaults.standard.removePersistentDomain(forName: suiteName) }
     }
 }
