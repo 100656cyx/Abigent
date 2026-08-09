@@ -5,7 +5,7 @@ project_root=$(cd "$(dirname "$0")/.." && pwd)
 build_root="$project_root/.build-abigent"
 dist_root="$project_root/dist"
 app_path="$dist_root/Abigent.app"
-sdk_path="/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk"
+sdk_path=${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}
 cache_root="${TMPDIR:-/tmp}/abigent-build-cache"
 
 mkdir -p "$cache_root/clang" "$cache_root/swiftpm" "$dist_root"

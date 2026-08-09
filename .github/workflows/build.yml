@@ -5,22 +5,41 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   macos:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
       - name: Run tests
         run: swift test
-      - name: Build release app
-        run: Scripts/build-app.sh
-      - name: Verify signatures and architecture
+      - name: Build free distribution DMG
+        env:
+          ABIGENT_VERSION: 1.0.0-beta.1
+          ABIGENT_BUILD: ${{ github.run_number }}
+        run: scripts/release.sh
+      - name: Verify package contents
         run: |
+          set -euo pipefail
+          dmg="dist/Abigent-1.0.0-beta.1-macOS-arm64.dmg"
           codesign --verify --deep --strict dist/Abigent.app
+          codesign --verify --strict dist/Abigent.app/Contents/Helpers/abigent-hook
           test "$(lipo -archs dist/Abigent.app/Contents/MacOS/Abigent)" = "arm64"
+          hdiutil verify "$dmg"
+          mount_point=$(mktemp -d /tmp/abigent-ci-mount.XXXXXX)
+          trap 'hdiutil detach "$mount_point" >/dev/null 2>&1 || true; rmdir "$mount_point" 2>/dev/null || true' EXIT
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount_point" "$dmg" >/dev/null
+          test -d "$mount_point/Abigent.app"
+          test -L "$mount_point/Applications"
+          test -f "$mount_point/首次打开说明.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: Abigent-macOS-arm64-ci
-          path: dist/Abigent.app
+          name: Abigent-macOS-arm64-free-ci
+          if-no-files-found: error
+          path: |
+            dist/Abigent-1.0.0-beta.1-macOS-arm64.dmg
+            dist/Abigent-1.0.0-beta.1-macOS-arm64.dmg.sha256
