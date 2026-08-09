@@ -1,6 +1,25 @@
 import AbigentCore
 import SwiftUI
 
+struct HoverablePetResultCard: View {
+    let task: AgentTask
+    let expanded: Bool
+    let onToggleExpanded: () -> Void
+    let onOpenCodex: () -> Void
+    let onHoverChanged: (Bool) -> Void
+
+    var body: some View {
+        PetResultCard(
+            task: task,
+            expanded: expanded,
+            onToggleExpanded: onToggleExpanded,
+            onOpenCodex: onOpenCodex
+        )
+        .padding(16)
+        .onHover(perform: onHoverChanged)
+    }
+}
+
 struct PetResultCard: View {
     let task: AgentTask
     let expanded: Bool

@@ -4,110 +4,32 @@ import SwiftUI
 
 struct PetView: View {
     let state: PetAnimationState
-    let task: AgentTask?
     let petScale: CGFloat
-    let alwaysOnTop: Bool
-    let controlsVisible: Bool
-    let onCardVisibilityChanged: (Bool) -> Void
-    let onControlVisibilityChanged: (Bool) -> Void
-    let onScaleChanged: (CGFloat) -> Void
-    let onScaleEnded: () -> Void
-    let onToggleAlwaysOnTop: () -> Void
-    let onResetScale: () -> Void
-    let onHide: () -> Void
-    let onQuit: () -> Void
-    let onOpenCodex: (AgentTask) -> Void
+    let onHoverChanged: (Bool) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var cardVisible = false
-    @State private var expanded = false
-    @State private var hoverTask: Task<Void, Never>?
-    @State private var pointerInsideInteractionArea = false
+    @State private var isHovered = false
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { timeline in
             let phase = timeline.date.timeIntervalSinceReferenceDate
-            HStack(alignment: .bottom, spacing: 14) {
-                if cardVisible, let task {
-                    PetResultCard(
-                        task: task,
-                        expanded: expanded,
-                        onToggleExpanded: { expanded.toggle() },
-                        onOpenCodex: { onOpenCodex(task) }
-                    )
-                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .trailing)))
-                }
-                ZStack(alignment: .bottomTrailing) {
-                    Image(nsImage: petImage)
-                        .resizable()
-                        .scaledToFit()
-                        .scaleEffect(animationScale(phase))
-                        .rotationEffect(rotation(phase))
-                        .offset(y: verticalOffset(phase))
-                        .animation(.easeInOut(duration: 0.35), value: state)
-                        .accessibilityLabel("Abigent，\(stateLabel)")
-                    badge
-                        .padding(18 * petScale)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                }
-                .frame(width: 190 * petScale, height: 250 * petScale)
-                .contentShape(Rectangle())
-                .overlay(alignment: .topTrailing) {
-                    if controlsVisible {
-                        PetControlPanel(
-                            scale: petScale,
-                            alwaysOnTop: alwaysOnTop,
-                            hasResult: task?.result != nil,
-                            onShowResult: {
-                                guard task?.result != nil else { return }
-                                expanded = true
-                                cardVisible = true
-                                onCardVisibilityChanged(true)
-                                onControlVisibilityChanged(false)
-                            },
-                            onToggleAlwaysOnTop: onToggleAlwaysOnTop,
-                            onResetScale: onResetScale,
-                            onOpenSettings: { openSettings() },
-                            onHide: onHide,
-                            onQuit: onQuit,
-                            onScaleChanged: onScaleChanged,
-                            onScaleEnded: onScaleEnded
-                        )
-                        .offset(y: -235)
-                        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottomTrailing)))
-                    }
-                }
+            ZStack(alignment: .bottomTrailing) {
+                Image(nsImage: petImage)
+                    .resizable()
+                    .scaledToFit()
+                    .scaleEffect(animationScale(phase))
+                    .rotationEffect(rotation(phase))
+                    .offset(y: verticalOffset(phase))
+                    .animation(.easeInOut(duration: 0.35), value: state)
+                    .accessibilityLabel("Abigent，\(stateLabel)")
+                badge
+                    .padding(18 * petScale)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
-            .onHover(perform: scheduleVisibility)
-            .padding(5)
-            .animation(.easeInOut(duration: 0.18), value: cardVisible)
-        }
-        .onExitCommand {
-            onControlVisibilityChanged(false)
-        }
-    }
-
-    @Environment(\.openSettings) private var openSettings
-
-    private func scheduleVisibility(_ hovering: Bool) {
-        pointerInsideInteractionArea = hovering
-        hoverTask?.cancel()
-        if hovering {
-            hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(180))
-                guard !Task.isCancelled, task != nil else { return }
-                await MainActor.run {
-                    cardVisible = true
-                    onCardVisibilityChanged(true)
-                }
-            }
-        } else if !expanded {
-            hoverTask = Task {
-                try? await Task.sleep(for: .milliseconds(250))
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    cardVisible = false
-                    onCardVisibilityChanged(false)
-                }
+            .frame(width: 190 * petScale, height: 250 * petScale)
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+                onHoverChanged(hovering)
             }
         }
     }
@@ -142,7 +64,7 @@ struct PetView: View {
         return image
     }
     private func animationScale(_ phase: Double) -> CGFloat {
-        guard !reduceMotion, !pointerInsideInteractionArea else { return 1 }
+        guard !reduceMotion, !isHovered else { return 1 }
         switch state {
         case .idle: return 1 + 0.006 * sin(phase * 2)
         case .working: return 1 + 0.004 * sin(phase * 4)
@@ -152,12 +74,12 @@ struct PetView: View {
         }
     }
     private func rotation(_ phase: Double) -> Angle {
-        guard !reduceMotion, !pointerInsideInteractionArea else { return .zero }
+        guard !reduceMotion, !isHovered else { return .zero }
         if state == .needsInput { return .degrees(sin(phase * 5) * 1.8) }
         return .zero
     }
     private func verticalOffset(_ phase: Double) -> CGFloat {
-        guard !reduceMotion, !pointerInsideInteractionArea, state == .completed else { return 0 }
+        guard !reduceMotion, !isHovered, state == .completed else { return 0 }
         return -4 * abs(sin(phase * 3))
     }
     private var stateLabel: String {
