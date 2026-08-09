@@ -9,11 +9,11 @@ on:
       version:
         description: Version written to the app and artifact name
         required: true
-        default: 1.0.0-beta.1
+        default: 1.0.0-beta.2
       build:
         description: Numeric CFBundle build number
         required: true
-        default: "6"
+        default: "7"
 
 permissions:
   contents: write
@@ -31,7 +31,7 @@ jobs:
           INPUT_BUILD: ${{ inputs.build }}
         run: |
           version="${INPUT_VERSION:-${GITHUB_REF_NAME#v}}"
-          build="${INPUT_BUILD:-6}"
+          build="${INPUT_BUILD:-7}"
           ABIGENT_VERSION="$version" ABIGENT_BUILD="$build" Scripts/release.sh
       - name: Upload package artifact
         uses: actions/upload-artifact@v4

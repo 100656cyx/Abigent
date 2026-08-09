@@ -19,13 +19,13 @@ jobs:
         run: swift test
       - name: Build free distribution DMG
         env:
-          ABIGENT_VERSION: 1.0.0-beta.1
+          ABIGENT_VERSION: 1.0.0-beta.2
           ABIGENT_BUILD: ${{ github.run_number }}
         run: scripts/release.sh
       - name: Verify package contents
         run: |
           set -euo pipefail
-          dmg="dist/Abigent-1.0.0-beta.1-macOS-arm64.dmg"
+          dmg="dist/Abigent-1.0.0-beta.2-macOS-arm64.dmg"
           codesign --verify --deep --strict dist/Abigent.app
           codesign --verify --strict dist/Abigent.app/Contents/Helpers/abigent-hook
           test "$(lipo -archs dist/Abigent.app/Contents/MacOS/Abigent)" = "arm64"
@@ -41,5 +41,5 @@ jobs:
           name: Abigent-macOS-arm64-free-ci
           if-no-files-found: error
           path: |
-            dist/Abigent-1.0.0-beta.1-macOS-arm64.dmg
-            dist/Abigent-1.0.0-beta.1-macOS-arm64.dmg.sha256
+            dist/Abigent-1.0.0-beta.2-macOS-arm64.dmg
+            dist/Abigent-1.0.0-beta.2-macOS-arm64.dmg.sha256
