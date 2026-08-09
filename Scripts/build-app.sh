@@ -33,6 +33,12 @@ rm -rf "$app_path"
 mkdir -p "$app_path/Contents/MacOS" "$app_path/Contents/Resources" "$app_path/Contents/Helpers"
 cp "$binary_path" "$app_path/Contents/MacOS/Abigent"
 cp Resources/Info.plist "$app_path/Contents/Info.plist"
+if [[ -n "${ABIGENT_VERSION:-}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $ABIGENT_VERSION" "$app_path/Contents/Info.plist"
+fi
+if [[ -n "${ABIGENT_BUILD:-}" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $ABIGENT_BUILD" "$app_path/Contents/Info.plist"
+fi
 cp -R "$bundle_path" "$app_path/Contents/Resources/Abigent_AbigentApp.bundle"
 cp "$hook_path" "$app_path/Contents/Helpers/abigent-hook"
 chmod 755 "$app_path/Contents/Helpers/abigent-hook"

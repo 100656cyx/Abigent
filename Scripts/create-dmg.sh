@@ -3,9 +3,9 @@ set -euo pipefail
 
 project_root=$(cd "$(dirname "$0")/.." && pwd)
 app_path=${1:-"$project_root/dist/Abigent.app"}
-dmg_path="$project_root/dist/Abigent.dmg"
+dmg_path=${2:-"$project_root/dist/Abigent.dmg"}
 
-if [[ ! -d "$app_path" || "$(basename "$app_path")" != "Abigent.app" ]]; then
+if [[ ! -d "$app_path" || "$(basename "$app_path")" != "Abigent.app" || "$(dirname "$dmg_path")" != "$project_root/dist" ]]; then
   echo "Expected an existing Abigent.app" >&2
   exit 2
 fi

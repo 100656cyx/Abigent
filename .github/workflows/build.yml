@@ -1,0 +1,26 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+      - name: Run tests
+        run: swift test
+      - name: Build release app
+        run: Scripts/build-app.sh
+      - name: Verify signatures and architecture
+        run: |
+          codesign --verify --deep --strict dist/Abigent.app
+          test "$(lipo -archs dist/Abigent.app/Contents/MacOS/Abigent)" = "arm64"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Abigent-macOS-arm64-ci
+          path: dist/Abigent.app
