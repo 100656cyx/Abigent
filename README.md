@@ -2,7 +2,14 @@
 
 Abigent 是一个完全在本地运行的 macOS Codex 桌面伴侣。它用一只桌面小猫反馈 Agent 的工作、等待操作和完成状态，并在任务完成后展示本轮回复摘要。
 
-![Abigent 小猫](Resources/Pet/abigent-base.png)
+> [!IMPORTANT]
+> **当前推荐版本：[`v1.0.0-beta.2`](https://github.com/100656cyx/Abigent/releases/tag/v1.0.0-beta.2)**
+>
+> Beta 1 存在 macOS 14 启动兼容问题，请下载 Beta 2。
+
+[下载 Abigent v1.0.0-beta.2 DMG](https://github.com/100656cyx/Abigent/releases/download/v1.0.0-beta.2/Abigent-1.0.0-beta.2-macOS-arm64.dmg) · [查看发布说明](https://github.com/100656cyx/Abigent/releases/tag/v1.0.0-beta.2)
+
+![Abigent 显示 Codex 完成状态、任务摘要和桌面小猫](docs/assets/abigent-beta2-overview.png)
 
 > 当前版本是免费个人分享 Beta，使用临时签名，尚未使用 Apple Developer ID 公证。首次打开需要在 macOS“系统设置 → 隐私与安全性”中点击“仍要打开”。
 
