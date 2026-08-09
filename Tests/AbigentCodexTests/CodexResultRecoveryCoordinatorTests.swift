@@ -30,7 +30,7 @@ final class CodexResultRecoveryCoordinatorTests: XCTestCase {
         XCTAssertEqual(deliveryCount, 1)
     }
 
-    func testNewGenerationCancelsOlderSameSessionRecovery() async throws {
+    func testDifferentStopsInSameSessionRecoverIndependently() async throws {
         let delivered = Messages()
         let sessionID = UUID().uuidString
         let coordinator = CodexResultRecoveryCoordinator(delays: [.milliseconds(50)]) { _, date in
@@ -49,10 +49,38 @@ final class CodexResultRecoveryCoordinatorTests: XCTestCase {
         await coordinator.recover(sessionID: sessionID, stopObservedAt: Date(timeIntervalSince1970: 2)) {
             await delivered.append($0.detail ?? "")
         }
-        try await waitUntil { await delivered.values.count == 1 }
+        try await waitUntil { await delivered.values.count == 2 }
 
-        let values = await delivered.values
-        XCTAssertEqual(values, ["2.0"])
+        let deliveredValues = await delivered.values
+        let values = deliveredValues.sorted()
+        XCTAssertEqual(values, ["1.0", "2.0"])
+    }
+
+    func testRepeatsFinalDelayUntilResultBecomesAvailable() async throws {
+        let attempts = Counter()
+        let delivered = Counter()
+        let coordinator = CodexResultRecoveryCoordinator(
+            delays: [.zero, .zero],
+            maximumAttempts: 3
+        ) { _, date in
+            let attempt = await attempts.increment()
+            if attempt < 3 { throw CodexResultExtractorError.resultNotYetAvailable }
+            return TaskResult(
+                summary: "延迟完成",
+                changedFiles: nil,
+                tests: nil,
+                detail: "第三次才写入",
+                returnedAt: date
+            )
+        }
+
+        await coordinator.recover(sessionID: UUID().uuidString, stopObservedAt: Date.now) { _ in
+            _ = await delivered.increment()
+        }
+        try await waitUntil { await delivered.value == 1 }
+
+        let attemptCount = await attempts.value
+        XCTAssertEqual(attemptCount, 3)
     }
 
     private func waitUntil(

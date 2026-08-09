@@ -2,7 +2,7 @@
 set -euo pipefail
 
 project_root=$(cd "$(dirname "$0")/.." && pwd)
-version=${ABIGENT_VERSION:-1.0.0-beta.3}
+version=${ABIGENT_VERSION:-1.0.0-beta.4}
 build=${ABIGENT_BUILD:-1}
 artifact_name="Abigent-${version}-macOS-arm64.dmg"
 artifact_path="$project_root/dist/$artifact_name"

@@ -11,6 +11,11 @@ public actor CodexResultRecoveryCoordinator {
         let task: Task<Void, Never>
     }
 
+    private struct RecoveryKey: Hashable {
+        let sessionID: String
+        let stopObservedAt: Date
+    }
+
     private static let defaultDelays: [Duration] = [
         .zero,
         .milliseconds(100),
@@ -26,14 +31,22 @@ public actor CodexResultRecoveryCoordinator {
 
     private let extract: Extract
     private let delays: [Duration]
+    private let maximumAttempts: Int
     private let logger = Logger(subsystem: "com.abigent.desktop", category: "result-recovery")
-    private var recoveries: [String: Recovery] = [:]
+    private var recoveries: [RecoveryKey: Recovery] = [:]
 
     public init(
         delays: [Duration]? = nil,
+        maximumAttempts: Int? = nil,
         extract: @escaping Extract
     ) {
-        self.delays = delays ?? Self.defaultDelays
+        if let delays, !delays.isEmpty {
+            self.delays = delays
+            self.maximumAttempts = max(maximumAttempts ?? delays.count, delays.count)
+        } else {
+            self.delays = Self.defaultDelays
+            self.maximumAttempts = max(maximumAttempts ?? 120, Self.defaultDelays.count)
+        }
         self.extract = extract
     }
 
@@ -42,14 +55,17 @@ public actor CodexResultRecoveryCoordinator {
         stopObservedAt: Date,
         deliver: @escaping Deliver
     ) {
-        recoveries[sessionID]?.task.cancel()
+        let key = RecoveryKey(sessionID: sessionID, stopObservedAt: stopObservedAt)
+        guard recoveries[key] == nil else { return }
         let generation = UUID()
         let delays = self.delays
+        let maximumAttempts = self.maximumAttempts
         let extract = self.extract
         let task = Task { [weak self] in
             var lastError: Error?
-            for (index, delay) in delays.enumerated() {
+            for attempt in 0..<maximumAttempts {
                 guard !Task.isCancelled else { return }
+                let delay = delays[min(attempt, delays.count - 1)]
                 if delay > .zero {
                     do { try await Task.sleep(for: delay) }
                     catch { return }
@@ -59,22 +75,22 @@ public actor CodexResultRecoveryCoordinator {
                     let result = try await extract(sessionID, stopObservedAt)
                     guard !Task.isCancelled else { return }
                     await deliver(result)
-                    await self?.finish(sessionID: sessionID, generation: generation)
+                    await self?.finish(key: key, generation: generation)
                     return
                 } catch {
                     lastError = error
-                    if index == delays.indices.last {
+                    if attempt == maximumAttempts - 1 {
                         await self?.recordFailure(
-                            sessionID: sessionID,
+                            key: key,
                             generation: generation,
-                            attempts: delays.count,
+                            attempts: maximumAttempts,
                             error: lastError
                         )
                     }
                 }
             }
         }
-        recoveries[sessionID] = Recovery(generation: generation, task: task)
+        recoveries[key] = Recovery(generation: generation, task: task)
     }
 
     public func cancelAll() {
@@ -84,22 +100,22 @@ public actor CodexResultRecoveryCoordinator {
 
     var activeRecoveryCount: Int { recoveries.count }
 
-    private func finish(sessionID: String, generation: UUID) {
-        guard recoveries[sessionID]?.generation == generation else { return }
-        recoveries[sessionID] = nil
+    private func finish(key: RecoveryKey, generation: UUID) {
+        guard recoveries[key]?.generation == generation else { return }
+        recoveries[key] = nil
     }
 
     private func recordFailure(
-        sessionID: String,
+        key: RecoveryKey,
         generation: UUID,
         attempts: Int,
         error: Error?
     ) {
-        guard recoveries[sessionID]?.generation == generation else { return }
+        guard recoveries[key]?.generation == generation else { return }
         let category = error.map { String(describing: type(of: $0)) } ?? "unknown"
         logger.error(
-            "Final result recovery timed out; session=\(sessionID, privacy: .private) attempts=\(attempts) error=\(category, privacy: .public)"
+            "Final result recovery timed out; session=\(key.sessionID, privacy: .private) attempts=\(attempts) error=\(category, privacy: .public)"
         )
-        recoveries[sessionID] = nil
+        recoveries[key] = nil
     }
 }

@@ -3,11 +3,11 @@
 Abigent 是一个完全在本地运行的 macOS Codex 桌面伴侣。它用一只桌面小猫反馈 Agent 的工作、等待操作和完成状态，并在任务完成后展示本轮回复摘要。
 
 > [!IMPORTANT]
-> **当前推荐版本：[`v1.0.0-beta.3`](https://github.com/100656cyx/Abigent/releases/tag/v1.0.0-beta.3)**
+> **当前推荐版本：[`v1.0.0-beta.4`](https://github.com/100656cyx/Abigent/releases/tag/v1.0.0-beta.4)**
 >
-> Beta 3 修复了同一会话快速开始下一轮时，摘要可能一直停留在“结果同步中”的问题。
+> Beta 4 修复了 Codex 延迟写入会话文件时，摘要可能一直停留在“结果同步中”的问题。
 
-[下载 Abigent v1.0.0-beta.3 DMG](https://github.com/100656cyx/Abigent/releases/download/v1.0.0-beta.3/Abigent-1.0.0-beta.3-macOS-arm64.dmg) · [查看发布说明](https://github.com/100656cyx/Abigent/releases/tag/v1.0.0-beta.3)
+[下载 Abigent v1.0.0-beta.4 DMG](https://github.com/100656cyx/Abigent/releases/download/v1.0.0-beta.4/Abigent-1.0.0-beta.4-macOS-arm64.dmg) · [查看发布说明](https://github.com/100656cyx/Abigent/releases/tag/v1.0.0-beta.4)
 
 ![Abigent 显示 Codex 完成状态、任务摘要和桌面小猫](docs/assets/abigent-beta2-overview.png)
 
@@ -37,8 +37,8 @@ Abigent 是一个完全在本地运行的 macOS Codex 桌面伴侣。它用一�
 
 从 GitHub Releases 下载：
 
-- `Abigent-1.0.0-beta.3-macOS-arm64.dmg`
-- 可选校验文件：`Abigent-1.0.0-beta.3-macOS-arm64.dmg.sha256`
+- `Abigent-1.0.0-beta.4-macOS-arm64.dmg`
+- 可选校验文件：`Abigent-1.0.0-beta.4-macOS-arm64.dmg.sha256`
 
 安装步骤：
 
@@ -96,7 +96,7 @@ Abigent 是一个完全在本地运行的 macOS Codex 桌面伴侣。它用一�
 ```bash
 swift test
 Scripts/build-app.sh
-ABIGENT_VERSION=1.0.0-beta.3 ABIGENT_BUILD=8 Scripts/release.sh
+ABIGENT_VERSION=1.0.0-beta.4 ABIGENT_BUILD=9 Scripts/release.sh
 ```
 
 生成的 App、DMG 和 SHA-256 位于 `dist/`。该目录不会提交到 Git。
@@ -108,6 +108,7 @@ ABIGENT_VERSION=1.0.0-beta.3 ABIGENT_BUILD=8 Scripts/release.sh
 - [更新记录](CHANGELOG.md)
 - [贡献指南](CONTRIBUTING.md)
 - [Codex Hook 信任排障](docs/troubleshooting/codex-hook-trust.md)
+- [1.0.0 Beta 4 发布说明](docs/releases/1.0.0-beta.4.md)
 - [1.0.0 Beta 3 发布说明](docs/releases/1.0.0-beta.3.md)
 - [1.0.0 Beta 2 发布说明](docs/releases/1.0.0-beta.2.md)
 - [1.0.0 Beta 1 发布说明](docs/releases/1.0.0-beta.1.md)
