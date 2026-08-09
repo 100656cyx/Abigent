@@ -44,7 +44,19 @@ public struct CodexHookInstaller {
         for event in CodexHookEvent.allCases {
             var groups = try groups(for: event.rawValue, in: hooks)
             groups = groups.compactMap(removingOwnedHooks)
-            groups.append(Self.group(event: event, relayURL: relayURL))
+            let ownedGroup = Self.group(event: event, relayURL: relayURL)
+            guard let ownedEntries = ownedGroup["hooks"] as? [[String: Any]],
+                  let ownedEntry = ownedEntries.first
+            else { throw CodexHookInstallerError.validationFailed }
+            if groups.isEmpty {
+                groups.append(ownedGroup)
+            } else {
+                guard var entries = groups[0]["hooks"] as? [[String: Any]] else {
+                    throw CodexHookInstallerError.malformedEvent(event.rawValue)
+                }
+                entries.append(ownedEntry)
+                groups[0]["hooks"] = entries
+            }
             hooks[event.rawValue] = groups
         }
         root["hooks"] = hooks

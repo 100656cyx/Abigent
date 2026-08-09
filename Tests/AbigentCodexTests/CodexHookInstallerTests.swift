@@ -6,7 +6,7 @@ final class CodexHookInstallerTests: XCTestCase {
     func testInstallPreservesThirdPartyHooksAndIsIdempotent() throws {
         let fixture = try Fixture(json: [
             "custom": "keep",
-            "hooks": ["Stop": [["hooks": [[
+            "hooks": ["Stop": [["matcher": ".*", "hooks": [[
                 "type": "command", "command": "/Applications/Flux Island.app/flux-hooks", "timeout": 30
             ]]]]]
         ])
@@ -16,10 +16,33 @@ final class CodexHookInstallerTests: XCTestCase {
         let root = try fixture.root()
         XCTAssertEqual(root["custom"] as? String, "keep")
         let stop = try XCTUnwrap((root["hooks"] as? [String: Any])?["Stop"] as? [[String: Any]])
+        XCTAssertEqual(stop.count, 1)
+        XCTAssertEqual(stop.first?["matcher"] as? String, ".*")
         let commands = stop.flatMap { $0["hooks"] as? [[String: Any]] ?? [] }
             .compactMap { $0["command"] as? String }
         XCTAssertEqual(commands.filter { $0.contains("Flux Island") }.count, 1)
         XCTAssertEqual(commands.filter { $0.contains(CodexHookInstaller.marker) }.count, 1)
+    }
+
+    func testInstallUsesFirstExistingGroupInsteadOfAppendingUnreachableGroup() throws {
+        let fixture = try Fixture(json: ["hooks": ["UserPromptSubmit": [
+            ["hooks": [["type": "command", "command": "flux-hooks"]]],
+            ["hooks": [["type": "command", "command": "another-hook"]]]
+        ]]])
+
+        try fixture.installer.install(relayURL: fixture.relay)
+
+        let root = try fixture.root()
+        let groups = try XCTUnwrap(
+            (root["hooks"] as? [String: Any])?["UserPromptSubmit"] as? [[String: Any]]
+        )
+        XCTAssertEqual(groups.count, 2)
+        let firstCommands = (groups[0]["hooks"] as? [[String: Any]] ?? [])
+            .compactMap { $0["command"] as? String }
+        let secondCommands = (groups[1]["hooks"] as? [[String: Any]] ?? [])
+            .compactMap { $0["command"] as? String }
+        XCTAssertEqual(firstCommands.filter { $0.contains(CodexHookInstaller.marker) }.count, 1)
+        XCTAssertFalse(secondCommands.contains { $0.contains(CodexHookInstaller.marker) })
     }
 
     func testUninstallRemovesOnlyOwnedEntries() throws {
