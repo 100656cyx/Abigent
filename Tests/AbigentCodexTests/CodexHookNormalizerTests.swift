@@ -31,12 +31,12 @@ final class CodexHookNormalizerTests: XCTestCase {
     }
 
     private func envelope(_ event: String, extra: [String: JSONValue] = [:]) -> HookEnvelope {
-        var payload: [String: JSONValue] = ["session_id": .string("019fe19b-6f4d-7b60-930b-1c6546d9a12e")]
+        var payload: [String: JSONValue] = ["session_id": .string("00000000-0000-0000-0000-000000000001")]
         payload.merge(extra) { _, new in new }
         return HookEnvelope(
             source: .codex,
             event: event,
-            sessionID: "019fe19b-6f4d-7b60-930b-1c6546d9a12e",
+            sessionID: "00000000-0000-0000-0000-000000000001",
             observedAt: Date(timeIntervalSince1970: 42),
             payload: .object(payload)
         )

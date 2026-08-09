@@ -72,7 +72,7 @@ final class CodexResultExtractorTests: XCTestCase {
     }
 
     private final class Fixture {
-        let sessionID = "019fe19b-6f4d-7b60-930b-1c6546d9a12e"
+        let sessionID = "00000000-0000-0000-0000-000000000001"
         let directory: URL
         let extractor: CodexResultExtractor
 
