@@ -1,14 +1,14 @@
 # Abigent V1 Beta 测试矩阵
 
 日期：2026-08-09  
-候选版本：`1.0.0-beta.1`（build 6）
+候选版本：`1.0.0-beta.2`（build 7）
 目标平台：Apple Silicon、macOS 14 及以上
 
 | 范围 | 结果 | 验证记录 |
 |---|---|---|
 | Release 构建 | 通过 | 全部生产 target 编译、链接并完成临时签名。 |
 | 安装与启动 | 通过 | `dist/Abigent.app` 安装到 `/Applications/Abigent.app` 后正常启动。 |
-| 版本与架构 | 通过 | 版本 `1.0.0-beta.1`、build `6`、Mach-O arm64。 |
+| 版本与架构 | 通过 | 版本 `1.0.0-beta.2`、build `7`、Mach-O arm64。 |
 | 首次连接引导 | 通过 | 能识别已安装 Hooks，并显示“等待 Codex 首个真实事件”。 |
 | 桌面宠物 | 通过 | 小猫窗口出现；Codex 工作时显示工作状态。 |
 | 操作框 | 通过 | 在小猫上双指按下/右键后显示品牌操作框、大小百分比和滑块。 |

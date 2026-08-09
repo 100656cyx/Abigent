@@ -7,7 +7,7 @@
 - 使用 Apple Silicon Mac（M1 或更新）。
 - 系统为 macOS 14.0 或更新。
 - 已安装 Codex 桌面应用。
-- 下载文件名为 `Abigent-1.0.0-beta.1-macOS-arm64.dmg`。
+- 下载文件名为 `Abigent-1.0.0-beta.2-macOS-arm64.dmg`。
 
 ## 2. 安装 Abigent
 
@@ -73,8 +73,7 @@ Abigent 只移除自己的 Hook 标记，不删除 Flux Island 或其他工具�
 如果同时下载了 `.sha256` 文件，可在 DMG 所在目录运行：
 
 ```bash
-shasum -a 256 -c Abigent-1.0.0-beta.1-macOS-arm64.dmg.sha256
+shasum -a 256 -c Abigent-1.0.0-beta.2-macOS-arm64.dmg.sha256
 ```
 
 输出 `OK` 表示文件与发布者生成的校验值一致；这不能替代 Developer ID 公证，但能发现传输损坏或文件被替换。
-

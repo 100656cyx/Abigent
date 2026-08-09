@@ -30,8 +30,8 @@ Abigent 是一个完全在本地运行的 macOS Codex 桌面伴侣。它用一�
 
 从 GitHub Releases 下载：
 
-- `Abigent-1.0.0-beta.1-macOS-arm64.dmg`
-- 可选校验文件：`Abigent-1.0.0-beta.1-macOS-arm64.dmg.sha256`
+- `Abigent-1.0.0-beta.2-macOS-arm64.dmg`
+- 可选校验文件：`Abigent-1.0.0-beta.2-macOS-arm64.dmg.sha256`
 
 安装步骤：
 
@@ -88,7 +88,7 @@ Abigent 是一个完全在本地运行的 macOS Codex 桌面伴侣。它用一�
 ```bash
 swift test
 Scripts/build-app.sh
-ABIGENT_VERSION=1.0.0-beta.1 ABIGENT_BUILD=6 scripts/release.sh
+ABIGENT_VERSION=1.0.0-beta.2 ABIGENT_BUILD=7 Scripts/release.sh
 ```
 
 生成的 App、DMG 和 SHA-256 位于 `dist/`。该目录不会提交到 Git。
@@ -99,7 +99,8 @@ ABIGENT_VERSION=1.0.0-beta.1 ABIGENT_BUILD=6 scripts/release.sh
 - [隐私说明](PRIVACY.md)
 - [更新记录](CHANGELOG.md)
 - [贡献指南](CONTRIBUTING.md)
-- [1.0.0 Beta 发布说明](docs/releases/1.0.0-beta.1.md)
+- [1.0.0 Beta 2 发布说明](docs/releases/1.0.0-beta.2.md)
+- [1.0.0 Beta 1 发布说明](docs/releases/1.0.0-beta.1.md)
 
 ## License
 

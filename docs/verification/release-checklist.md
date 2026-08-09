@@ -14,7 +14,7 @@
 - 0.2.1 将 Hook Socket 迁移到 `~/.abigent/run/bridge.sock`；实机权限为 `0600`，安装包 Relay 的本地链路验证为 Hook provenance 3。
 - 最终回复提取支持 Stop 早于 `task_complete` 落盘，并由每 session 独立的最长 30 秒恢复任务补齐延迟结果。
 - 当前机器只有 Command Line Tools，缺少 XCTest；测试源码已提交，但完整 XCTest 运行等待安装完整 Xcode。
-- `1.0.0-beta.1`（build 6）免费分享包已生成，版本、arm64 架构、应用和 Helper 临时签名均已验证。
+- `1.0.0-beta.2`（build 7）免费分享包已生成，版本、arm64 架构、应用和 Helper 临时签名均已验证。
 - 首次设置正确识别 Hook 状态；桌面小猫与双指按下/右键操作框已通过实际界面验收。
 - 版本化 DMG 的 SHA-256 和 `hdiutil verify` 均通过。
 - DMG 已确认包含 Abigent、Applications 快捷入口和《首次打开说明》。

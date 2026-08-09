@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-beta.2
+
+- 修复 Apple Silicon Mac 在 macOS 14 上启动时触发 AttributeGraph fatal error、确认“打开”后没有响应的问题。
+- 将桌面小猫窗口与后台连接延迟到 SwiftUI 根视图完成挂载后启动。
+- 增加幂等启动保护，避免重复创建窗口、Hook listener 或任务流。
+
 ## 1.0.0-beta.1
 
 - Codex Hooks 实时任务状态与本轮结果摘要。
