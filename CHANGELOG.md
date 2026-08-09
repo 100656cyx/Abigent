@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-beta.3
+
+- 修复同一 Codex 会话快速开始下一轮时，上一轮摘要可能持续显示“任务已完成，结果同步中”的问题。
+- 摘要恢复现在绑定到 Stop 事件对应的任务轮次，不再被之后开始的新一轮覆盖。
+- 新增跨轮次延迟恢复的回归测试。
+
 ## 1.0.0-beta.2
 
 - 修复 Apple Silicon Mac 在 macOS 14 上启动时触发 AttributeGraph fatal error、确认“打开”后没有响应的问题。
