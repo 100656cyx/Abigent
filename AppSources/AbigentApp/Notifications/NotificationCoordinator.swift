@@ -5,8 +5,8 @@ import UserNotifications
 actor NotificationCoordinator {
     func deliver(_ intent: NotificationIntent) async {
         let center = UNUserNotificationCenter.current()
-        let settings = await center.notificationSettings()
-        if settings.authorizationStatus == .notDetermined {
+        let authorizationStatus = await authorizationStatus(for: center)
+        if authorizationStatus == .notDetermined {
             _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
         }
         let content = UNMutableNotificationContent()
@@ -15,5 +15,15 @@ actor NotificationCoordinator {
         content.sound = .default
         let identifier = "\(intent.task.id.rawValue):\(intent.task.state.rawValue):\(intent.task.updatedAt.timeIntervalSince1970)"
         try? await center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: nil))
+    }
+
+    private func authorizationStatus(
+        for center: UNUserNotificationCenter
+    ) async -> UNAuthorizationStatus {
+        await withCheckedContinuation { continuation in
+            center.getNotificationSettings { settings in
+                continuation.resume(returning: settings.authorizationStatus)
+            }
+        }
     }
 }
