@@ -5,6 +5,7 @@ import AbigentPersistence
 import AbigentRuntime
 import AppKit
 import Foundation
+import SwiftUI
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -33,6 +34,7 @@ final class AppModel: ObservableObject {
     }
     @Published private(set) var hookInstallationStatus: HookInstallationStatus = .notInstalled
     @Published private(set) var hookSetupError: String?
+    @Published private(set) var onboardingState: OnboardingState = .detecting
 
     private let coordinator: TaskCoordinator?
     private let hookServer: HookSocketServer?
@@ -45,6 +47,7 @@ final class AppModel: ObservableObject {
     private let petPreferences = PetPreferenceStore()
     private var started = false
     private var appServerRecoveryRequests: [String: Date] = [:]
+    private var onboardingWindowController: NSWindowController?
 
     var attentionTasks: [AgentTask] { tasks.filter { $0.state == .needsInput } }
     var activeTasks: [AgentTask] { tasks.filter { [.working, .connectionUnknown].contains($0.state) } }
@@ -88,11 +91,18 @@ final class AppModel: ObservableObject {
         }
         petController.setVisible(true)
         hookInstallationStatus = hookInstaller?.inspect() ?? .notInstalled
+        refreshOnboardingState()
         Task {
             let placement = await petPreferences.load()
             petScale = placement.normalizedScale
             petController.apply(placement)
             await start()
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  !UserDefaults.standard.bool(forKey: "onboardingCompleted")
+            else { return }
+            self.showOnboarding()
         }
     }
 
@@ -164,9 +174,11 @@ final class AppModel: ObservableObject {
             try hookInstaller.install(relayURL: relay)
             hookInstallationStatus = hookInstaller.inspect()
             hookSetupError = nil
+            onboardingState = .restartRequired(installedAt: Date())
         } catch {
             hookSetupError = "无法安全更新 Codex Hook：\(String(describing: error))"
             hookInstallationStatus = hookInstaller.inspect()
+            onboardingState = .failed(message: hookSetupError ?? "无法更新 Codex Hook。")
         }
     }
 
@@ -179,6 +191,53 @@ final class AppModel: ObservableObject {
         } catch {
             hookSetupError = "无法停用 Abigent Hook：\(String(describing: error))"
         }
+    }
+
+    func refreshOnboardingState() {
+        let codexExists = FileManager.default.fileExists(
+            atPath: "/Applications/ChatGPT.app/Contents/Resources/codex"
+        )
+        guard codexExists else {
+            onboardingState = .codexMissing
+            return
+        }
+        onboardingState = hooksInstalled ? .waitingForSessionStart : .hookNotInstalled
+    }
+
+    func waitForCodexSessionStart() { onboardingState = .waitingForSessionStart }
+
+    func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+        dismissOnboarding()
+    }
+
+    func dismissOnboarding() {
+        onboardingWindowController?.close()
+        onboardingWindowController = nil
+    }
+
+    func showOnboarding() {
+        if let window = onboardingWindowController?.window {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 390),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "欢迎使用 Abigent"
+        window.isReleasedWhenClosed = false
+        window.center()
+        window.contentView = NSHostingView(
+            rootView: OnboardingView().environmentObject(self)
+        )
+        let controller = NSWindowController(window: window)
+        onboardingWindowController = controller
+        controller.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func start() async {
@@ -224,6 +283,10 @@ final class AppModel: ObservableObject {
         let envelopes = hookServer.events()
         Task { [weak self] in
             for await envelope in envelopes {
+                if envelope.event == CodexHookEvent.sessionStart.rawValue,
+                   self?.onboardingState == .waitingForSessionStart {
+                    await MainActor.run { self?.onboardingState = .ready }
+                }
                 let events = await hookNormalizer.normalize(envelope)
                 for event in events { try? await coordinator.ingest(event) }
                 guard envelope.event == CodexHookEvent.stop.rawValue,
