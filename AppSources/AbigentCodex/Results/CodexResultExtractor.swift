@@ -27,8 +27,7 @@ public actor CodexResultExtractor {
 
     private func parse(file: URL, sessionID: String, returnedAt: Date) throws -> TaskResult? {
         let data = try Data(contentsOf: file)
-        var lastStart = 0
-        var lastComplete: Int?
+        var starts: [(index: Int, timestamp: Date?)] = []
         var messages: [(Int, String)] = []
         var paths: [(Int, String)] = []
         let lines = data.split(separator: 0x0A)
@@ -38,8 +37,8 @@ public actor CodexResultExtractor {
             else { continue }
             if root["type"] as? String == "event_msg" {
                 switch payload["type"] as? String {
-                case "task_started": lastStart = index; lastComplete = nil
-                case "task_complete": lastComplete = index
+                case "task_started":
+                    starts.append((index, eventTimestamp(root["timestamp"])))
                 case "agent_message":
                     if let message = payload["message"] as? String { messages.append((index, message)) }
                 default: break
@@ -51,13 +50,24 @@ public actor CodexResultExtractor {
                 paths.append((index, path))
             }
         }
-        let turnEnd = lastComplete ?? Int.max
+
+        let turnStart: Int
+        if starts.contains(where: { $0.timestamp != nil }) {
+            guard let anchoredStart = starts.last(where: {
+                guard let timestamp = $0.timestamp else { return false }
+                return timestamp <= returnedAt
+            }) else { return nil }
+            turnStart = anchoredStart.index
+        } else {
+            turnStart = starts.last?.index ?? 0
+        }
+        let turnEnd = starts.first(where: { $0.index > turnStart }).map { $0.index - 1 } ?? Int.max
         guard let detail = messages.last(where: {
-            $0.0 >= lastStart && $0.0 <= turnEnd
+            $0.0 >= turnStart && $0.0 <= turnEnd
                 && !$0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         })?.1 else { return nil }
         let explicitPaths = orderedUnique(paths.filter {
-            $0.0 >= lastStart && $0.0 <= turnEnd
+            $0.0 >= turnStart && $0.0 <= turnEnd
         }.map(\.1))
         let summary = detail.split(separator: "\n", omittingEmptySubsequences: true).first.map {
             String($0.prefix(160))
@@ -70,6 +80,14 @@ public actor CodexResultExtractor {
             detail: detail,
             returnedAt: returnedAt
         )
+    }
+
+    private func eventTimestamp(_ value: Any?) -> Date? {
+        guard let value = value as? String else { return nil }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: value) { return date }
+        return ISO8601DateFormatter().date(from: value)
     }
 
     private func sessionFile(for sessionID: String) -> URL? {

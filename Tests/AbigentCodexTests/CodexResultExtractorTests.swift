@@ -52,6 +52,31 @@ final class CodexResultExtractorTests: XCTestCase {
         }
     }
 
+    func testStopTimestampKeepsRecoveryOnCompletedTurnAfterNewTurnStarts() async throws {
+        let fixture = try Fixture(lines: [
+            event("task_started", timestamp: "2026-08-09T12:56:00.000Z"),
+            event(
+                "agent_message",
+                timestamp: "2026-08-09T12:56:24.085Z",
+                extra: ["message": "本轮最终结论\n完整内容"]
+            ),
+            event("task_complete", timestamp: "2026-08-09T12:56:24.791Z"),
+            event("task_started", timestamp: "2026-08-09T12:56:46.900Z")
+        ])
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let result = try await fixture.extractor.extract(
+            sessionID: fixture.sessionID,
+            stopObservedAt: try XCTUnwrap(formatter.date(
+                from: "2026-08-09T12:56:24.825Z"
+            ))
+        )
+
+        XCTAssertEqual(result.summary, "本轮最终结论")
+        XCTAssertEqual(result.detail, "本轮最终结论\n完整内容")
+    }
+
     func testSkipsMalformedJSONLines() async throws {
         let fixture = try Fixture(lines: [
             event("task_started"),
@@ -67,8 +92,17 @@ final class CodexResultExtractorTests: XCTestCase {
         XCTAssertEqual(result.detail, "有效回复")
     }
 
-    private static func event(_ type: String, extra: [String: Any] = [:]) -> [String: Any] {
-        ["type": "event_msg", "payload": ["type": type].merging(extra) { _, new in new }]
+    private static func event(
+        _ type: String,
+        timestamp: String? = nil,
+        extra: [String: Any] = [:]
+    ) -> [String: Any] {
+        var root: [String: Any] = [
+            "type": "event_msg",
+            "payload": ["type": type].merging(extra) { _, new in new }
+        ]
+        root["timestamp"] = timestamp
+        return root
     }
 
     private final class Fixture {
