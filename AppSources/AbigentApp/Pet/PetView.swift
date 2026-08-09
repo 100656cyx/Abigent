@@ -6,9 +6,16 @@ struct PetView: View {
     let state: PetAnimationState
     let task: AgentTask?
     let petScale: CGFloat
+    let alwaysOnTop: Bool
+    let controlsVisible: Bool
     let onCardVisibilityChanged: (Bool) -> Void
+    let onControlVisibilityChanged: (Bool) -> Void
     let onScaleChanged: (CGFloat) -> Void
     let onScaleEnded: () -> Void
+    let onToggleAlwaysOnTop: () -> Void
+    let onResetScale: () -> Void
+    let onHide: () -> Void
+    let onQuit: () -> Void
     let onOpenCodex: (AgentTask) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var cardVisible = false
@@ -51,11 +58,41 @@ struct PetView: View {
                 .frame(width: 190 * petScale, height: 250 * petScale)
                 .contentShape(Rectangle())
                 .onHover(perform: scheduleVisibility)
+                .overlay(alignment: .topTrailing) {
+                    if controlsVisible {
+                        PetControlPanel(
+                            scale: petScale,
+                            alwaysOnTop: alwaysOnTop,
+                            hasResult: task?.result != nil,
+                            onShowResult: {
+                                guard task?.result != nil else { return }
+                                expanded = true
+                                cardVisible = true
+                                onCardVisibilityChanged(true)
+                                onControlVisibilityChanged(false)
+                            },
+                            onToggleAlwaysOnTop: onToggleAlwaysOnTop,
+                            onResetScale: onResetScale,
+                            onOpenSettings: { openSettings() },
+                            onHide: onHide,
+                            onQuit: onQuit,
+                            onScaleChanged: onScaleChanged,
+                            onScaleEnded: onScaleEnded
+                        )
+                        .offset(y: -235)
+                        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottomTrailing)))
+                    }
+                }
             }
             .padding(5)
             .animation(.easeInOut(duration: 0.18), value: cardVisible)
         }
+        .onExitCommand {
+            onControlVisibilityChanged(false)
+        }
     }
+
+    @Environment(\.openSettings) private var openSettings
 
     private func scheduleVisibility(_ hovering: Bool) {
         hoverTask?.cancel()

@@ -76,6 +76,11 @@ final class AppModel: ObservableObject {
         }
         self.hookInstaller = hookInstaller
         petController.onOpenCodex = { [weak self] task in self?.openCodex(task) }
+        petController.onToggleAlwaysOnTop = { [weak self] in
+            guard let self else { return }
+            self.petAlwaysOnTop.toggle()
+        }
+        petController.onResetScale = { [weak self] in self?.resetPetScale() }
         petController.onPlacementChange = { [weak self] placement in
             guard let self else { return }
             self.petScale = placement.normalizedScale
