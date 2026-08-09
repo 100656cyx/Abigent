@@ -4,7 +4,24 @@ import SwiftUI
 
 private final class SecondaryClickHostingView<Content: View>: NSHostingView<Content> {
     var onSecondaryClick: (() -> Void)?
+    var petDragAreaSize = CGSize.zero
+
     override func rightMouseDown(with event: NSEvent) { onSecondaryClick?() }
+
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let dragArea = CGRect(
+            x: bounds.maxX - petDragAreaSize.width,
+            y: bounds.minY,
+            width: petDragAreaSize.width,
+            height: petDragAreaSize.height
+        )
+        guard dragArea.contains(point) else {
+            super.mouseDown(with: event)
+            return
+        }
+        window?.performDrag(with: event)
+    }
 }
 
 @MainActor
@@ -37,7 +54,7 @@ final class PetWindowController: NSObject, NSWindowDelegate {
         panel.hasShadow = false
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
+        panel.isMovableByWindowBackground = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.level = .floating
         panel.delegate = self
@@ -112,12 +129,16 @@ final class PetWindowController: NSObject, NSWindowDelegate {
             self.resizePanel(animated: true)
             self.render()
         }
+        hosting.petDragAreaSize = CGSize(
+            width: Self.basePetSize.width * scale,
+            height: Self.basePetSize.height * scale
+        )
         panel.contentView = hosting
     }
 
     private func setCardVisible(_ visible: Bool) {
         cardVisible = visible
-        resizePanel(animated: true)
+        resizePanel(animated: false)
     }
 
     private func positionOnVisibleScreen() {
